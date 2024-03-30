@@ -1,14 +1,26 @@
+
 # CANViewer
+
 CANAble2.0でCANをしゃべるくん
+[GitHub - TomiXRM/CANViewer: CANAble2.0でCANをしゃべるくん](https://github.com/TomiXRM/CANViewer)
+
 ![image1.png](./asset/image1.png)
+
+CANable2.0(slcan)でCAN通信をするGUIアプリケーションです。PyQt6で実装されています。
+
+CANでデータを送信してCANを動かす時などに使えるおもちゃです。
+
+※現在動作確認しているのはMacOSのみです
+
+※現在送信にしか対応していないです。受信にも対応予定。
+
+※いつかSocketCANにも対応させます
 
 # **前提条件**
 
+- CANable2.0デバイスが用意されていること
 - Pythonがインストールされていること
 - Poetryがインストールされていること
-- PythonアプリケーションがPoetryで管理されていること
-
-[GitHub - TomiXRM/CANViewer: CANAble2.0でCANをしゃべるくん](https://github.com/TomiXRM/CANViewer)
 
 # 使用方法
 
@@ -31,6 +43,11 @@ CANAble2.0でCANをしゃべるくん
     poetry run python main.py
     ```
     
+
+# CANViewerの機能
+
+- インターバル送信
+- 単発送信
 
 # **注意事項**
 
