@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "cansender"
+version = "0.1.0"
+description = "CAN Sender GUI with slcand"
+authors = ["tomixrm <chocolate0785lego@icloud.com>"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pyserial = "^3.5"
+python-can = "^4.3.1"
+pyqt6 = "^6.6.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
