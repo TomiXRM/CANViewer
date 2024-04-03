@@ -27,9 +27,10 @@ class MainWindow(QMainWindow):
         self.port_label = QLabel("Port")
         self.portlist_layout.addWidget(self.port_label)
         self.port_combobox = QComboBox()
-        self.refresh_ports()
         self.portlist_layout.addWidget(self.port_combobox)
+        self.refresh_ports()
         port_layout.addLayout(self.portlist_layout)
+        port_layout.setContentsMargins(0, 0, 0, 0)  # 余白を削除
 
         self.connect_button = QPushButton("Connect")
         self.connect_button.clicked.connect(self.toggle_connection)
@@ -116,7 +117,9 @@ class MainWindow(QMainWindow):
             port = self.port_combobox.currentText()
             try:
                 bps = int(self.bps_edit.text())
-                self.can_bus = can.interface.Bus(channel=port, bitrate=bps, bustype="slcan")
+                self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=True, bustype="slcan")
+                can.Notifier(self.can_bus, [self.print_msg])
+                self.bps_edit.setEnabled(False)
                 self.log("Connected to {}".format(port), color="green")
                 self.connect_button.setText("Disconnect")
             except Exception as e:
@@ -126,6 +129,7 @@ class MainWindow(QMainWindow):
             self.can_bus = None
             self.log("Disconnected", color="green")
             self.connect_button.setText("Connect")
+            self.bps_edit.setEnabled(True)
 
     def toggle_interval_send(self):
         if self.sending:
@@ -144,7 +148,8 @@ class MainWindow(QMainWindow):
                 self.timer.timeout.connect(self.send_data)
                 self.timer.start(interval)
                 self.start_button.setText("Stop")
-                self.interval_edit.setEnabled(False)
+
+                self.bps_edit.setEnabled(False)
                 self.sending = True
                 self.log("Sending data at {} ms intervals".format(interval))
 
@@ -170,15 +175,26 @@ class MainWindow(QMainWindow):
                 elif data[i] < 0:
                     data[i] = 0
 
-            msg = can.Message(arbitration_id=stdid, data=data)
+            msg = can.Message(arbitration_id=stdid, data=data, is_rx=False)
 
-            ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
             try:
                 self.can_bus.send(msg)
-                self.log(
-                    f"time:{ms_timestamp}\tTX:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{msg.data[0]:02x} {msg.data[1]:02x} {msg.data[2]:02x} {msg.data[3]:02x} {msg.data[4]:02x} {msg.data[5]:02x} {msg.data[6]:02x} {msg.data[7]:02x}", color="blue")
+                self.print_msg(msg)
             except can.CanError as e:
                 self.log("Failed to send: {}".format(e), color="red")
+
+    def print_msg(self, msg):
+        dir = ''
+        if msg is not None:
+            if msg.is_rx:
+                color: str = 'red'
+                dir = 'RX'
+            else:
+                color: str = 'blue'
+                dir = 'TX'
+            ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{msg.data[0]:02x} {msg.data[1]:02x} {msg.data[2]:02x} {msg.data[3]:02x} {msg.data[4]:02x} {msg.data[5]:02x} {msg.data[6]:02x} {msg.data[7]:02x}"
+        self.log(text, color=color)
 
     def log(self, message, color=None):
         if color is None:
