@@ -2,17 +2,18 @@ import sys
 from datetime import datetime
 
 import can
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QIntValidator
+import serial.tools.list_ports
+from PyQt6.QtCore import QMutex, Qt, QTimer
+from PyQt6.QtGui import QFont, QIntValidator, QTextCursor
 from PyQt6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
                              QLineEdit, QMainWindow, QPushButton, QTextEdit,
                              QVBoxLayout, QWidget)
-from serial.tools.list_ports import comports
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.mutex = QMutex()  # ミューテックスを初期化
         self.setWindowTitle("CAN Sender App")
         self.setGeometry(100, 100, 800, 300)
         self.central_widget = QWidget()
@@ -71,7 +72,7 @@ class MainWindow(QMainWindow):
         self.bps_label = QLabel("baudrate [bps]")
         bps_layout.addWidget(self.bps_label)
         self.bps_edit = QLineEdit()
-        self.bps_edit.setText("1000000")
+        self.bps_edit.setText("100000")
         self.bps_edit.setValidator(QIntValidator())
         bps_layout.addWidget(self.bps_edit)
         self.can_config_layout.addLayout(bps_layout)
@@ -103,10 +104,11 @@ class MainWindow(QMainWindow):
         self.timer = None
         self.can_bus = None
         self.sending = False
+        self.blocking = False
 
     def refresh_ports(self):
         self.port_combobox.clear()
-        for n, (port, desc, devid) in enumerate(sorted(comports()), 1):
+        for n, (port, desc, devid) in enumerate(sorted(serial.tools.list_ports.comports()), 1):
             print(f" {n}: {port:20} {desc} {devid}")
             self.port_combobox.addItem(port)
             if "CANable" in desc:
@@ -183,6 +185,15 @@ class MainWindow(QMainWindow):
             except can.CanError as e:
                 self.log("Failed to send: {}".format(e), color="red")
 
+    def recieve_packet(self, msg):
+        # can.Notifierで受信したメッセージを処理する
+        # print_msgはlog_edit.append(message)をするので、あちこちから同時に呼び出すとエラーになる
+        # そのため、print_msgの中でrevieve_packetを呼び出す時にmutexを使って排他処理を行う
+        print("recieve_packet")
+        self.mutex.lock()
+        self.print_msg(self, msg)
+        self.mutex.unlock()
+
     def print_msg(self, msg):
         dir = ''
         if msg is not None:
@@ -194,13 +205,22 @@ class MainWindow(QMainWindow):
                 dir = 'TX'
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
             text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{msg.data[0]:02x} {msg.data[1]:02x} {msg.data[2]:02x} {msg.data[3]:02x} {msg.data[4]:02x} {msg.data[5]:02x} {msg.data[6]:02x} {msg.data[7]:02x}"
-        self.log(text, color=color)
+            print(text)
+            if msg.is_rx == False:
+                self.log(text, color=color)
 
     def log(self, message, color=None):
         if color is None:
             self.log_edit.append(message)
         else:
             self.log_edit.append(f"<font color='{color}'>{message}</font>")
+
+        # log_edit(QTextEdit)が1000行を超えたら、最初の行を削除する
+        # if self.log_edit.document().blockCount() > 200:
+        #     cursor = self.log_edit.textCursor()
+        #     cursor.movePosition(QTextCursor.MoveOperation.Start)
+        #     cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+        #     cursor.removeSelectedText()
 
 
 def start_gui():
