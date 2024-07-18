@@ -10,7 +10,7 @@ CANable2.0(slcan)でCAN通信をするGUIアプリケーションです。PyQt6�
 
 CANでデータを送信してCANを動かす時などに使えるおもちゃです。
 
-※現在動作確認しているのはMacOSのみです
+Mac,Ubuntu,Windowsで動作確認済みです！
 
 ※現在送信にしか対応していないです。受信にも対応予定。
 
@@ -18,7 +18,7 @@ CANでデータを送信してCANを動かす時などに使えるおもちゃ�
 
 # **前提条件**
 
-- CANable2.0デバイスが用意されていること
+- CANable2.0(slcan)デバイスが用意されていること
 - Pythonがインストールされていること
 - Poetryがインストールされていること
 
@@ -33,14 +33,14 @@ CANでデータを送信してCANを動かす時などに使えるおもちゃ�
     
 3. Poetryを使用して依存関係を解決し、仮想環境を作成します。
     
-    ```
+    ```bash
     poetry install
     ```
     
 4. アプリケーションを起動します。
     
-    ```arduino
-    poetry run python main.py
+    ```bash
+    make
     ```
     
 
@@ -53,4 +53,62 @@ CANでデータを送信してCANを動かす時などに使えるおもちゃ�
 
 - Poetryがインストールされていない場合は、事前にインストールする必要があります。
 - Poetryを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
-- **`poetry run`**を使用することで、Poetryが管理する仮想環境内でPythonアプリケーションを実行します。
+- **`make`**を使用することで、Poetryが管理する仮想環境内でPythonアプリケーションを実行します。
+
+# CANViewer
+
+CAN talker with CANAble2.0
+[GitHub - TomiXRM/CANViewer: CAN talker with CANAble2.0](https://github.com/TomiXRM/CANViewer)
+
+![image1.png](./asset/image1.png)
+
+A GUI application for CAN communication with CANable2.0 (slcan). Implemented with PyQt6.
+
+A toy that can be used when sending data via CAN to operate CAN.
+
+Operation confirmed on Mac, Ubuntu, and Windows!
+
+*Currently only supports sending. Receiving will also be supported.
+
+*We will make it compatible with SocketCAN someday.
+
+# **Prerequisites**
+
+- A CANable2.0 (slcan) device must be prepared.
+
+- Python must be installed.
+
+- Poetry must be installed.
+
+# How to use
+
+1. Open a terminal.
+
+2. Change to the directory where the Python application is stored.
+
+```bash
+cd path/to/your/python/application
+```
+
+3. Use Poetry to resolve dependencies and create a virtual environment.
+
+```bash
+poetry install
+```
+
+4. Start the application.
+
+```bash
+make
+```
+
+# CANViewer features
+
+- Interval transmission
+- Single transmission
+
+# **Notes**
+
+- If Poetry is not installed, you must install it in advance.
+- By using Poetry to resolve dependencies, packages required to run Python applications are automatically installed.
+- By using **`make`**, Python applications are run in a virtual environment managed by Poetry.
