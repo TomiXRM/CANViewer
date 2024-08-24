@@ -204,7 +204,8 @@ class MainWindow(QMainWindow):
                 color: str = 'blue'
                 dir = 'TX'
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
-            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{msg.data[0]:02x} {msg.data[1]:02x} {msg.data[2]:02x} {msg.data[3]:02x} {msg.data[4]:02x} {msg.data[5]:02x} {msg.data[6]:02x} {msg.data[7]:02x}"
+            data_str = ' '.join(f"{byte:02x}" for byte in msg.data)
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{data_str}"
             print(text)
             if msg.is_rx == False:
                 self.log(text, color=color)
