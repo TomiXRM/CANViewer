@@ -177,7 +177,7 @@ class MainWindow(QMainWindow):
                 elif data[i] < 0:
                     data[i] = 0
 
-            msg = can.Message(arbitration_id=stdid, data=data, is_rx=False)
+            msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=False, is_rx=False)
 
             try:
                 self.can_bus.send(msg)
