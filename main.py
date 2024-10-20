@@ -90,10 +90,11 @@ class MainWindow(QMainWindow):
 
         # データ入力
         data_layout = QHBoxLayout()
-        self.stdid_label = QLabel("StdID")
-        # ラベルをクリックしたら、StdIdからExtIdにトグル
-        self.stdid_label.mousePressEvent = lambda event: self.toggle_stdid_extid()
-        data_layout.addWidget(self.stdid_label)
+        self.id_button = QPushButton("StdID")
+        # ボタンをクリックしたら、StdIdからExtIdにトグル
+        self.id_button.setMinimumWidth(50)
+        self.id_button.clicked.connect(self.toggle_stdid_extid)
+        data_layout.addWidget(self.id_button)
         self.stdid_edit = QLineEdit("0")
         self.stdid_edit.setValidator(QIntValidator())
         data_layout.addWidget(self.stdid_edit)
@@ -227,11 +228,9 @@ class MainWindow(QMainWindow):
     def toggle_stdid_extid(self):
         self.is_extended_id = not self.is_extended_id  # モードを切り替え
         if self.is_extended_id:
-            self.stdid_label.setText("ExtID")
-            self.stdid_label.setStyleSheet("color: red")
+            self.id_button.setText("ExtID")
         else:
-            self.stdid_label.setText("StdID")
-            self.stdid_label.setStyleSheet("color: black")
+            self.id_button.setText("StdID")
 
     def send_data(self):
         sendable = True
