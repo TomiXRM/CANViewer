@@ -1,20 +1,67 @@
+import argparse
+import os
 import sys
 from datetime import datetime
 
 import can
 import serial.tools.list_ports
-from PyQt6.QtCore import QMutex, Qt, QTimer
+from PyQt6.QtCore import QMutex, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QIntValidator, QTextCursor
 from PyQt6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
                              QLineEdit, QMainWindow, QPushButton, QTextEdit,
                              QVBoxLayout, QWidget)
 
+parser = argparse.ArgumentParser(
+    prog="CAN Send and Receive App",
+    usage="python main.py [options]",
+    epilog="end",  # ヘルプの後に表示
+    add_help=True,  # -h/–-helpオプションの追加
+)
+
+# -cオプションでCANのtypeを指定
+parser.add_argument("-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)")
+
+args = parser.parse_args()
+
+
+class CANHandler(QThread):
+    send_can_signal = pyqtSignal(can.Message)
+    can_bus = None
+
+    def init(self):
+        super().init()
+
+    def connect(self, port, bps, bus_type):  # Connect and start receiving
+        self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, bustype=bus_type)
+        self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
+
+    def disconnect(self):  # Disconnect and stop receiving
+        self.can_notifier.stop()
+        self.can_bus.shutdown()
+        self.can_bus = None
+
+    def get_connect_status(self):
+        if self.can_bus is None:
+            return False
+        else:
+            return True
+
+    def can_send(self, msg: can.Message):
+        msg.timestamp = datetime.now()
+        msg.is_rx = False
+        self.can_bus.send(msg)
+
+    def can_on_recieve(self, msg: can.Message):
+        msg.is_rx = True
+        msg.timestamp = datetime.now()
+        self.send_can_signal.emit(msg)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.mutex = QMutex()  # ミューテックスを初期化
-        self.setWindowTitle("CAN Sender App")
+        self.can_type = args.can  # "socketcan" or "slcan"
+        self.setWindowTitle(f"CAN Sender App | {args.can}")
         self.setGeometry(100, 100, 800, 300)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -102,33 +149,53 @@ class MainWindow(QMainWindow):
         self.layout.addLayout(self.can_config_layout)
 
         self.timer = None
-        self.can_bus = None
         self.sending = False
         self.blocking = False
 
+        # CAN Hanlder Setup
+        self.can_handler = CANHandler()
+        self.can_handler.send_can_signal.connect(self.print_msg)  # CANメッセージを受信したら、print_msgを呼び出す
+
     def refresh_ports(self):
-        self.port_combobox.clear()
-        for n, (port, desc, devid) in enumerate(sorted(serial.tools.list_ports.comports()), 1):
-            print(f" {n}: {port:20} {desc} {devid}")
-            self.port_combobox.addItem(port)
-            if "CANable" in desc:
-                self.port_combobox.setCurrentText(port)
+        if self.can_type == "slcan":
+            self.port_combobox.clear()
+            for n, (port, desc, devid) in enumerate(sorted(serial.tools.list_ports.comports()), 1):
+                print(f" {n}: {port:20} {desc} {devid}")
+                self.port_combobox.addItem(port)
+                if "CANable" in desc:
+                    self.port_combobox.setCurrentText(port)
+        elif self.can_type == "socketcan":
+            self.port_combobox.clear()
+            for interface in self.get_socketcan_interfaces():
+                self.port_combobox.addItem(interface)
+
+    def get_socketcan_interfaces(self):
+        output = os.popen('ip link show').read()
+
+        can_interfaces = []
+        lines = output.splitlines()
+
+        for i, line in enumerate(lines):
+            if 'link/can' in line:
+                previous_line = lines[i - 1]
+                interface_name = previous_line.split(':')[1].strip()
+                can_interfaces.append(interface_name)
+
+        return can_interfaces
 
     def toggle_connection(self):
-        if self.can_bus is None:
+        if self.can_handler.get_connect_status() == False:
             port = self.port_combobox.currentText()
             try:
                 bps = int(self.bps_edit.text())
-                self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=True, bustype="slcan")
-                can.Notifier(self.can_bus, [self.print_msg])
+                self.can_handler.connect(port, bps, self.can_type)
                 self.bps_edit.setEnabled(False)
                 self.log("Connected to {}".format(port), color="green")
                 self.connect_button.setText("Disconnect")
             except Exception as e:
                 self.log("Failed to connect: {}".format(e), color="red")
         else:
-            self.can_bus.shutdown()
-            self.can_bus = None
+            self.can_handler.disconnect()
             self.log("Disconnected", color="green")
             self.connect_button.setText("Connect")
             self.bps_edit.setEnabled(True)
@@ -157,7 +224,7 @@ class MainWindow(QMainWindow):
 
     def send_data(self):
         sendable = True
-        if self.can_bus is None:
+        if self.can_handler.get_connect_status() == False:
             self.log("Not connected to a port. ", color="red")
             sendable = False
         if self.stdid_edit.text() == "":
@@ -180,21 +247,12 @@ class MainWindow(QMainWindow):
             msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=False, is_rx=False)
 
             try:
-                self.can_bus.send(msg)
+                self.can_handler.can_send(msg)
                 self.print_msg(msg)
             except can.CanError as e:
                 self.log("Failed to send: {}".format(e), color="red")
 
-    def recieve_packet(self, msg):
-        # can.Notifierで受信したメッセージを処理する
-        # print_msgはlog_edit.append(message)をするので、あちこちから同時に呼び出すとエラーになる
-        # そのため、print_msgの中でrevieve_packetを呼び出す時にmutexを使って排他処理を行う
-        print("recieve_packet")
-        self.mutex.lock()
-        self.print_msg(self, msg)
-        self.mutex.unlock()
-
-    def print_msg(self, msg):
+    def print_msg(self, msg: can.Message):
         dir = ''
         if msg is not None:
             if msg.is_rx:
@@ -207,24 +265,17 @@ class MainWindow(QMainWindow):
             data_str = ' '.join(f"{byte:02x}" for byte in msg.data)
             text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{data_str}"
             print(text)
-            if msg.is_rx == False:
-                self.log(text, color=color)
+            self.log(text, color=color)
 
-    def log(self, message, color=None):
+    def log(self, message: can.Message, color: str = None):
         if color is None:
             self.log_edit.append(message)
         else:
             self.log_edit.append(f"<font color='{color}'>{message}</font>")
 
-        # log_edit(QTextEdit)が1000行を超えたら、最初の行を削除する
-        # if self.log_edit.document().blockCount() > 200:
-        #     cursor = self.log_edit.textCursor()
-        #     cursor.movePosition(QTextCursor.MoveOperation.Start)
-        #     cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
-        #     cursor.removeSelectedText()
-
 
 def start_gui():
+    print("CAN Type:", args.can)
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
