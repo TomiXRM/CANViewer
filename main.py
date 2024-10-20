@@ -90,7 +90,9 @@ class MainWindow(QMainWindow):
 
         # データ入力
         data_layout = QHBoxLayout()
-        self.stdid_label = QLabel("StdId")
+        self.stdid_label = QLabel("StdID")
+        # ラベルをクリックしたら、StdIdからExtIdにトグル
+        self.stdid_label.mousePressEvent = lambda event: self.toggle_stdid_extid()
         data_layout.addWidget(self.stdid_label)
         self.stdid_edit = QLineEdit("0")
         self.stdid_edit.setValidator(QIntValidator())
@@ -150,7 +152,7 @@ class MainWindow(QMainWindow):
 
         self.timer = None
         self.sending = False
-        self.blocking = False
+        self.is_extended_id = False
 
         # CAN Hanlder Setup
         self.can_handler = CANHandler()
@@ -222,13 +224,22 @@ class MainWindow(QMainWindow):
                 self.sending = True
                 self.log("Sending data at {} ms intervals".format(interval))
 
+    def toggle_stdid_extid(self):
+        self.is_extended_id = not self.is_extended_id  # モードを切り替え
+        if self.is_extended_id:
+            self.stdid_label.setText("ExtID")
+            self.stdid_label.setStyleSheet("color: red")
+        else:
+            self.stdid_label.setText("StdID")
+            self.stdid_label.setStyleSheet("color: black")
+
     def send_data(self):
         sendable = True
         if self.can_handler.get_connect_status() == False:
             self.log("Not connected to a port. ", color="red")
             sendable = False
         if self.stdid_edit.text() == "":
-            self.log("StdId is empty. ", color="red")
+            self.log("Id is empty. ", color="red")
             sendable = False
         if any([edit.text() == "" for edit in self.dataframe_edits]):
             self.log("DataFrame is empty. ", color="red")
@@ -244,7 +255,7 @@ class MainWindow(QMainWindow):
                 elif data[i] < 0:
                     data[i] = 0
 
-            msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=False, is_rx=False)
+            msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=self.is_extended_id, is_rx=False)
 
             try:
                 self.can_handler.can_send(msg)
@@ -256,14 +267,20 @@ class MainWindow(QMainWindow):
         dir = ''
         if msg is not None:
             if msg.is_rx:
-                color: str = 'red'
+                if msg.is_extended_id:
+                    color: str = '#FFA22B'  # orange
+                else:
+                    color: str = '#EC4954'  # red
                 dir = 'RX'
             else:
-                color: str = 'blue'
+                if msg.is_extended_id:
+                    color: str = '#33C0FF'  # light blue
+                else:
+                    color: str = '#2C4AFF'  # blue
                 dir = 'TX'
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
             data_str = ' '.join(f"{byte:02x}" for byte in msg.data)
-            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} ID:{msg.arbitration_id:04x} data:{data_str}"
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{msg.arbitration_id:04x} data:{data_str}"
             print(text)
             self.log(text, color=color)
 
