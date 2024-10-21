@@ -36,6 +36,10 @@ Mac,Ubuntu,Windowsで動作確認済みです！
     ```bash
     poetry install
     ```
+   または
+   ```bash
+   make install
+   ```
     
 4. アプリケーションを起動します。
     
@@ -46,8 +50,12 @@ Mac,Ubuntu,Windowsで動作確認済みです！
 
 # CANViewerの機能
 
-- インターバル送信
-- 単発送信
+- 単発送信  
+  `Interval`に入力せずに`Start`ボタンを押す
+- インターバル送信  
+  `Interval`に入力して`Start`ボタンを押す
+- 標準フォーマットと拡張フォーマットの切り替え  
+   `StdID`と`ExtID`を押すと切り替え
 
 # **注意事項**
 
@@ -86,26 +94,34 @@ Operation confirmed on Mac, Ubuntu, and Windows!
 
 2. Change to the directory where the Python application is stored.
 
-```bash
-cd path/to/your/python/application
-```
+   ```bash
+   cd path/to/your/python/application
+   ```
 
 3. Use Poetry to resolve dependencies and create a virtual environment.
 
-```bash
-poetry install
-```
+   ```bash
+   poetry install
+   ```
+   or
+   ```bash
+   make install
+   ```
 
 4. Start the application.
 
-```bash
-make
-```
+   ```bash
+   make
+   ```
 
 # CANViewer features
 
-- Interval transmission
-- Single transmission
+- Single transmission  
+   Click `Start`button **without** any input in `Interval`field
+- Interval transmission  
+   Click `Start`button **with** some input in `Interval`field
+- Select ID format  
+   Click `StdID`button or `ExtID`button
 
 # **Notes**
 
