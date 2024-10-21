@@ -90,10 +90,11 @@ class MainWindow(QMainWindow):
 
         # データ入力
         data_layout = QHBoxLayout()
-        self.stdid_label = QLabel("StdID")
-        # ラベルをクリックしたら、StdIdからExtIdにトグル
-        self.stdid_label.mousePressEvent = lambda event: self.toggle_stdid_extid()
-        data_layout.addWidget(self.stdid_label)
+        self.id_button = QPushButton("StdID")
+        # ボタンをクリックしたら、StdIdからExtIdにトグル
+        self.id_button.setMinimumWidth(50)
+        self.id_button.clicked.connect(self.toggle_stdid_extid)
+        data_layout.addWidget(self.id_button)
         self.stdid_edit = QLineEdit("0")
         self.stdid_edit.setValidator(QIntValidator())
         data_layout.addWidget(self.stdid_edit)
@@ -227,11 +228,9 @@ class MainWindow(QMainWindow):
     def toggle_stdid_extid(self):
         self.is_extended_id = not self.is_extended_id  # モードを切り替え
         if self.is_extended_id:
-            self.stdid_label.setText("ExtID")
-            self.stdid_label.setStyleSheet("color: red")
+            self.id_button.setText("ExtID")
         else:
-            self.stdid_label.setText("StdID")
-            self.stdid_label.setStyleSheet("color: black")
+            self.id_button.setText("StdID")
 
     def send_data(self):
         sendable = True
@@ -278,9 +277,13 @@ class MainWindow(QMainWindow):
                 else:
                     color: str = '#2C4AFF'  # blue
                 dir = 'TX'
+            if msg.is_extended_id:
+                id_str = f"{msg.arbitration_id:08x}"
+            else:
+                id_str = "_____" + f"{msg.arbitration_id:03x}"
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
             data_str = ' '.join(f"{byte:02x}" for byte in msg.data)
-            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{msg.arbitration_id:04x} data:{data_str}"
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str} data:{data_str}"
             print(text)
             self.log(text, color=color)
 
