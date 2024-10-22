@@ -5,11 +5,11 @@ from datetime import datetime
 
 import can
 import serial.tools.list_ports
-from PyQt6.QtCore import QMutex, Qt, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QIntValidator, QTextCursor
-from PyQt6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
-                             QLineEdit, QMainWindow, QPushButton, QTextEdit,
-                             QVBoxLayout, QWidget)
+from PySide6.QtCore import QMutex, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QFont, QIntValidator, QTextCursor
+from PySide6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
+                               QLineEdit, QMainWindow, QPushButton, QTextEdit,
+                               QVBoxLayout, QWidget)
 
 parser = argparse.ArgumentParser(
     prog="CAN Send and Receive App",
@@ -25,17 +25,17 @@ args = parser.parse_args()
 
 
 class CANHandler(QThread):
-    send_can_signal = pyqtSignal(can.Message)
+    send_can_signal = Signal(can.Message)
     can_bus = None
 
     def init(self):
-        super().init()
+        super().__init__()
 
-    def connect(self, port, bps, bus_type):  # Connect and start receiving
+    def connect_device(self, port, bps, bus_type):  # Connect and start receiving
         self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, bustype=bus_type)
         self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
 
-    def disconnect(self):  # Disconnect and stop receiving
+    def disconnect_devive(self):  # Disconnect and stop receiving
         self.can_notifier.stop()
         self.can_bus.shutdown()
         self.can_bus = None
@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
 
         # CAN Hanlder Setup
         self.can_handler = CANHandler()
-        self.can_handler.send_can_signal.connect(self.print_msg)  # CANメッセージを受信したら、print_msgを呼び出す
+        self.can_handler.send_can_signal.connect(self.print_msg)
 
     def refresh_ports(self):
         if self.can_type == "slcan":
@@ -191,14 +191,14 @@ class MainWindow(QMainWindow):
             port = self.port_combobox.currentText()
             try:
                 bps = int(self.bps_edit.text())
-                self.can_handler.connect(port, bps, self.can_type)
+                self.can_handler.connect_device(port, bps, self.can_type)
                 self.bps_edit.setEnabled(False)
                 self.log("Connected to {}".format(port), color="green")
                 self.connect_button.setText("Disconnect")
             except Exception as e:
                 self.log("Failed to connect: {}".format(e), color="red")
         else:
-            self.can_handler.disconnect()
+            self.can_handler.disconnect_device()
             self.log("Disconnected", color="green")
             self.connect_button.setText("Connect")
             self.bps_edit.setEnabled(True)
