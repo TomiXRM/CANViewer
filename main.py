@@ -240,19 +240,23 @@ class MainWindow(QMainWindow):
         if self.stdid_edit.text() == "":
             self.log("Id is empty. ", color="red")
             sendable = False
-        if any([edit.text() == "" for edit in self.dataframe_edits]):
-            self.log("DataFrame is empty. ", color="red")
-            sendable = False
 
         if sendable:
             stdid = int(self.stdid_edit.text())
-            data = [int(edit.text()) for edit in self.dataframe_edits]
-            # check if the data is in the correct range and change it if necessary
-            for i in range(len(data)):
-                if data[i] > 255:
-                    data[i] = 255
-                elif data[i] < 0:
-                    data[i] = 0
+            # Create a data frame and exclude empty fields
+            data = []
+            for edit in self.dataframe_edits:
+                text = edit.text()
+                if text:  # If not empty
+                    value = int(text)
+                    # Clipped to 0-255 range
+                    value = max(0, min(value, 255))
+                    data.append(value)
+
+            # Disallow empty data frames
+            if not data:
+                self.log("DataFrame is empty.", color="red")
+                return
 
             msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=self.is_extended_id, is_rx=False)
 
