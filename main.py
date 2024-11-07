@@ -171,12 +171,12 @@ class MainWindow(QMainWindow):
         # Ctrl + H change radix into Hexadecimal
         # Ctrl + D change radix into Decimal
         change_radix_hex_action = QAction('hex', self)
-        change_radix_hex_action.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_H))
+        change_radix_hex_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)])
         change_radix_hex_action.triggered.connect(self.change_radix_hex)
         self.addAction(change_radix_hex_action)
 
         change_radix_dec_action = QAction('dec', self)
-        change_radix_dec_action.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_D))
+        change_radix_dec_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)])
         change_radix_dec_action.triggered.connect(self.change_radix_dec)
         self.addAction(change_radix_dec_action)
 
