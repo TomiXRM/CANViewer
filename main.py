@@ -5,8 +5,10 @@ from datetime import datetime
 
 import can
 import serial.tools.list_ports
-from PySide6.QtCore import QMutex, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QFont, QIntValidator, QTextCursor
+from PySide6.QtCore import (QMutex, QRegularExpression, Qt, QThread, QTimer,
+                            Signal)
+from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
+                           QRegularExpressionValidator, QTextCursor)
 from PySide6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
                                QLineEdit, QMainWindow, QPushButton, QTextEdit,
                                QVBoxLayout, QWidget)
@@ -61,7 +63,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.can_type = args.can  # "socketcan" or "slcan"
-        self.setWindowTitle(f"CAN Sender App | {args.can}")
+        self.radix_type = "dec"  # "hex" or "dec"
+        self.radix_type_prev = "dec"
+        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
         self.setGeometry(100, 100, 800, 300)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -108,6 +112,10 @@ class MainWindow(QMainWindow):
 
             self.dataframe_edits.append(edit)
         self.layout.addLayout(data_layout)
+
+        # Varidation
+        self.hex_validator = QRegularExpressionValidator(QRegularExpression("^[0-9A-Fa-f]+$"))  # HEX
+        self.dec_validator = QIntValidator()  # DEC
 
         # ログの表示
         self.log_edit = QTextEdit()
@@ -158,6 +166,19 @@ class MainWindow(QMainWindow):
         # CAN Hanlder Setup
         self.can_handler = CANHandler()
         self.can_handler.send_can_signal.connect(self.print_msg)
+
+        # shrotcut key setting
+        # Ctrl + H change radix into Hexadecimal
+        # Ctrl + D change radix into Decimal
+        change_radix_hex_action = QAction('hex', self)
+        change_radix_hex_action.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_H))
+        change_radix_hex_action.triggered.connect(self.change_radix_hex)
+        self.addAction(change_radix_hex_action)
+
+        change_radix_dec_action = QAction('dec', self)
+        change_radix_dec_action.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_D))
+        change_radix_dec_action.triggered.connect(self.change_radix_dec)
+        self.addAction(change_radix_dec_action)
 
     def refresh_ports(self):
         if self.can_type == "slcan":
@@ -231,6 +252,83 @@ class MainWindow(QMainWindow):
             self.id_button.setText("ExtID")
         else:
             self.id_button.setText("StdID")
+
+    def change_radix_hex(self):
+        self.radix_type = "hex"
+
+        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
+
+        if self.radix_type_prev != "hex":
+            self.radix_type_prev = "hex"
+            # Save the current value of the edit field
+            temp_Stdid = self.stdid_edit.text()
+            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
+
+            # Change validator
+            self.stdid_edit.setValidator(self.hex_validator)
+            for edit in self.dataframe_edits:
+                edit.setValidator(self.hex_validator)
+
+            # Convert to hexadecimal
+            if temp_Stdid:
+                try:
+                    dec_value = int(temp_Stdid)
+                    hex_value = hex(dec_value)[2:].upper()
+                    self.stdid_edit.setText(hex_value)
+                except:
+                    pass
+
+            for i, edit in enumerate(self.dataframe_edits):
+                text = temp_dataframe[i]
+                if text:
+                    try:
+                        dec_value = int(text)
+                        hex_value = hex(dec_value)[2:].upper()
+                        edit.setText(hex_value)
+                    except:
+                        pass
+
+        # Change text color to red
+        self.stdid_edit.setStyleSheet("color: blue;font-weight: bold")
+        for edit in self.dataframe_edits:
+            edit.setStyleSheet("color: blue;font-weight: bold")
+
+    def change_radix_dec(self):
+        self.radix_type = "dec"
+        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
+
+        if self.radix_type_prev != "dec":
+            self.radix_type_prev = "dec"
+            # Save the current value of the edit field
+            temp_Stdid = self.stdid_edit.text()
+            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
+
+            # Change validator
+            self.stdid_edit.setValidator(self.dec_validator)
+            for edit in self.dataframe_edits:
+                edit.setValidator(self.dec_validator)
+
+            # Convert to decimal
+            if temp_Stdid:
+                try:
+                    hex_value = int(temp_Stdid, 16)
+                    dec_value = str(hex_value)
+                    self.stdid_edit.setText(dec_value)
+                except:
+                    pass
+            for i, edit in enumerate(self.dataframe_edits):
+                text = temp_dataframe[i]
+                if text:
+                    try:
+                        hex_value = int(text, 16)
+                        dec_value = str(hex_value)
+                        edit.setText(dec_value)
+                    except:
+                        pass
+        # Change Data Frame tex color to black
+        self.stdid_edit.setStyleSheet("color: black")
+        for edit in self.dataframe_edits:
+            edit.setStyleSheet("color: black")
 
     def send_data(self):
         sendable = True
