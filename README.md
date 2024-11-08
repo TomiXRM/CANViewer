@@ -9,37 +9,26 @@
   [![GitHub release](https://img.shields.io/github/v/release/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/releases)
 </div>
 
-
-# CANViewer
-
-CANAble2.0でCANをしゃべるくん
-[GitHub - TomiXRM/CANViewer: CANAble2.0でCANをしゃべるくん](https://github.com/TomiXRM/CANViewer)
-
 ![image1.png](./asset/image1.png)
 
-CANable2.0(slcan)でCAN通信をするGUIアプリケーションです。PyQt6で実装されています。
+SLCANやSocketCANデバイスをPCに接続して、PCから手軽にCAN通信を検証することができるアプリケーションです。
+CANバス上に流れるデータの受信、定期送信や単発送信、標準IDと拡張IDの切り替え、10進数↔️16進数変換に対応しています。
+Pythonベースで書かれているためMac,Ubuntu,Windows動作します(SocketCANはUbuntuのみ対応)
 
-CANでデータを送信してCANを動かす時などに使えるおもちゃです。
+## Prerequisites
 
-Mac,Ubuntu,Windowsで動作確認済みです！
-
-※現在送信にしか対応していないです。受信にも対応予定。
-
-※いつかSocketCANにも対応させます
-
-# **前提条件**
-
-- CANable2.0(slcan)デバイスが用意されていること
+- CANデバイスが用意されていること(SLCANであれば[CANable2.0](https://canable.io)や[MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html)など)
 - Pythonがインストールされていること
-- Poetryがインストールされていること
+- [Poetry](https://python-poetry.org)がインストールされていること(バージョン管理で使います)
+- `make`が入っていると便利です
 
-# 使用方法
+## Usage
 
 1. ターミナルを開きます。
 2. Pythonアプリケーションが格納されているディレクトリに移動します。
     
     ```bash
-    cd path/to/your/python/application
+    cd CANViewerのディレクトリ
     ```
     
 3. Poetryを使用して依存関係を解決し、仮想環境を作成します。
@@ -55,87 +44,40 @@ Mac,Ubuntu,Windowsで動作確認済みです！
 4. アプリケーションを起動します。
     
     ```bash
-    make
+    poetry run python main.py
     ```
+    または
+    ```bash
+    make run
+    ```
+5. SocketCANで動作させる場合のオプション
+   ```bash
+   poetry run python main.py -c socketcan
+   ```
+
     
 
-# CANViewerの機能
+## CANViewerの機能
+- **単発送信** : `Interval`に入力せずに`Start`ボタンを押す
+- **インターバル送信** : `Interval`にインターバル送信したい間隔(ミリ秒)を入力して`Start`ボタンを押す
+- **標準/拡張フォーマットの切り替え** : `StdID`/`ExtID`のクリックでフォーマットの切り替え
+- **入力進数変更** : `DataFrame`のラベルをクリックすることで切り替え可能。また`Ctrl+H(J)`でHEX、`Ctrl+D(F)`でDECへの入力メソッド切り替えが可能
 
-- 単発送信  
-  `Interval`に入力せずに`Start`ボタンを押す
-- インターバル送信  
-  `Interval`に入力して`Start`ボタンを押す
-- 標準フォーマットと拡張フォーマットの切り替え  
-   `StdID`と`ExtID`を押すと切り替え
 
-# **注意事項**
+### インターバル送信
+![interval.gif](./asset/interval.gif)
 
-- Poetryがインストールされていない場合は、事前にインストールする必要があります。
+### 標準ID/拡張IDフォーマット切り替え
+![id_format_switch.gif](./asset/id_format_switch.gif)
+
+### 入力フォーマットの10進数(DEC),16進数(HEX)切り替え
+![hex_dec_switch.gif](./asset/hex_dec_switch.gif)
+
+
+## **NOTE**
+
+- [Poetry](https://python-poetry.org)がインストールされていない場合は、事前にインストールする必要があります。
 - Poetryを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
-- **`make`**を使用することで、Poetryが管理する仮想環境内でPythonアプリケーションを実行します。
 
-# CANViewer
-
-CAN talker with CANAble2.0
-[GitHub - TomiXRM/CANViewer: CAN talker with CANAble2.0](https://github.com/TomiXRM/CANViewer)
-
-![image1.png](./asset/image1.png)
-
-A GUI application for CAN communication with CANable2.0 (slcan). Implemented with PyQt6.
-
-A toy that can be used when sending data via CAN to operate CAN.
-
-Operation confirmed on Mac, Ubuntu, and Windows!
-
-*Currently only supports sending. Receiving will also be supported.
-
-*We will make it compatible with SocketCAN someday.
-
-# **Prerequisites**
-
-- A CANable2.0 (slcan) device must be prepared.
-
-- Python must be installed.
-
-- Poetry must be installed.
-
-# How to use
-
-1. Open a terminal.
-
-2. Change to the directory where the Python application is stored.
-
-   ```bash
-   cd path/to/your/python/application
-   ```
-
-3. Use Poetry to resolve dependencies and create a virtual environment.
-
-   ```bash
-   poetry install
-   ```
-   or
-   ```bash
-   make install
-   ```
-
-4. Start the application.
-
-   ```bash
-   make
-   ```
-
-# CANViewer features
-
-- Single transmission  
-   Click `Start`button **without** any input in `Interval`field
-- Interval transmission  
-   Click `Start`button **with** some input in `Interval`field
-- Select ID format  
-   Click `StdID`button or `ExtID`button
-
-# **Notes**
-
-- If Poetry is not installed, you must install it in advance.
-- By using Poetry to resolve dependencies, packages required to run Python applications are automatically installed.
-- By using **`make`**, Python applications are run in a virtual environment managed by Poetry.
+## ライセンス
+このプロジェクトはLGPLライセンスです。 詳しくは[LICENSE](LICENSE)を確認ください
