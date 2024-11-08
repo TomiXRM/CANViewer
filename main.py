@@ -130,8 +130,11 @@ class MainWindow(QMainWindow):
         bps_layout = QHBoxLayout()
         self.bps_label = QLabel("baudrate [bps]")
         bps_layout.addWidget(self.bps_label)
-        self.bps_edit = QLineEdit()
-        self.bps_edit.setText("100000")
+        self.bps_edit = QComboBox()
+        self.bps_edit.setMinimumWidth(120)
+        self.bps_edit.setEditable(True)
+        self.bps_edit.addItems(["1000000", "500000", "100000"])  # よく使う通信速度を追加
+        self.bps_edit.setCurrentText("1000000")
         self.bps_edit.setValidator(QIntValidator())
         bps_layout.addWidget(self.bps_edit)
         self.can_config_layout.addLayout(bps_layout)
@@ -212,10 +215,10 @@ class MainWindow(QMainWindow):
         if self.can_handler.get_connect_status() == False:
             port = self.port_combobox.currentText()
             try:
-                bps = int(self.bps_edit.text())
+                bps = int(self.bps_edit.currentText())
                 self.can_handler.connect_device(port, bps, self.can_type)
                 self.bps_edit.setEnabled(False)
-                self.log("Connected to {}".format(port), color="green")
+                self.log(f"Connected to {port} : {bps * 10**-6} Mbps", color="green")
                 self.connect_button.setText("Disconnect")
             except Exception as e:
                 self.log("Failed to connect: {}".format(e), color="red")

@@ -1,3 +1,14 @@
+<div align="center">
+  <img src="/asset/icon.png" alt="CANVIEWER LOGO" width="120" />
+  <h1>CANViewer</h1>
+  <p>cross-platform CAN bus monitor, built on Python.</p>
+
+  [![License](https://img.shields.io/github/license/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/blob/main/LICENSE)
+  [![GitHub stars](https://img.shields.io/github/stars/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/stargazers)
+  [![GitHub issues](https://img.shields.io/github/issues/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/issues)
+  [![GitHub release](https://img.shields.io/github/v/release/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/releases)
+</div>
+
 
 # CANViewer
 
