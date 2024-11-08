@@ -5,8 +5,10 @@ from datetime import datetime
 
 import can
 import serial.tools.list_ports
-from PySide6.QtCore import QMutex, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QFont, QIntValidator, QTextCursor
+from PySide6.QtCore import (QMutex, QRegularExpression, Qt, QThread, QTimer,
+                            Signal)
+from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
+                           QRegularExpressionValidator, QTextCursor)
 from PySide6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
                                QLineEdit, QMainWindow, QPushButton, QTextEdit,
                                QVBoxLayout, QWidget)
@@ -61,7 +63,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.can_type = args.can  # "socketcan" or "slcan"
-        self.setWindowTitle(f"CAN Sender App | {args.can}")
+        self.radix_type = "dec"  # "hex" or "dec"
+        self.radix_type_prev = "dec"
+        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
         self.setGeometry(100, 100, 800, 300)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -99,6 +103,7 @@ class MainWindow(QMainWindow):
         self.stdid_edit.setValidator(QIntValidator())
         data_layout.addWidget(self.stdid_edit)
         self.dataframe_label = QLabel("DataFrame")
+        self.dataframe_label.mousePressEvent = lambda event: self.toggle_radix()
         data_layout.addWidget(self.dataframe_label)
         self.dataframe_edits = []
         for i in range(8):
@@ -108,6 +113,10 @@ class MainWindow(QMainWindow):
 
             self.dataframe_edits.append(edit)
         self.layout.addLayout(data_layout)
+
+        # Varidation
+        self.hex_validator = QRegularExpressionValidator(QRegularExpression("^[0-9A-Fa-f]+$"))  # HEX
+        self.dec_validator = QIntValidator()  # DEC
 
         # ログの表示
         self.log_edit = QTextEdit()
@@ -121,8 +130,11 @@ class MainWindow(QMainWindow):
         bps_layout = QHBoxLayout()
         self.bps_label = QLabel("baudrate [bps]")
         bps_layout.addWidget(self.bps_label)
-        self.bps_edit = QLineEdit()
-        self.bps_edit.setText("100000")
+        self.bps_edit = QComboBox()
+        self.bps_edit.setMinimumWidth(120)
+        self.bps_edit.setEditable(True)
+        self.bps_edit.addItems(["1000000", "500000", "100000"])  # よく使う通信速度を追加
+        self.bps_edit.setCurrentText("1000000")
         self.bps_edit.setValidator(QIntValidator())
         bps_layout.addWidget(self.bps_edit)
         self.can_config_layout.addLayout(bps_layout)
@@ -159,6 +171,19 @@ class MainWindow(QMainWindow):
         self.can_handler = CANHandler()
         self.can_handler.send_can_signal.connect(self.print_msg)
 
+        # shrotcut key setting
+        # Ctrl + H change radix into Hexadecimal
+        # Ctrl + D change radix into Decimal
+        change_radix_hex_action = QAction('hex', self)
+        change_radix_hex_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)])
+        change_radix_hex_action.triggered.connect(self.change_radix_hex)
+        self.addAction(change_radix_hex_action)
+
+        change_radix_dec_action = QAction('dec', self)
+        change_radix_dec_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)])
+        change_radix_dec_action.triggered.connect(self.change_radix_dec)
+        self.addAction(change_radix_dec_action)
+
     def refresh_ports(self):
         if self.can_type == "slcan":
             self.port_combobox.clear()
@@ -190,15 +215,15 @@ class MainWindow(QMainWindow):
         if self.can_handler.get_connect_status() == False:
             port = self.port_combobox.currentText()
             try:
-                bps = int(self.bps_edit.text())
+                bps = int(self.bps_edit.currentText())
                 self.can_handler.connect_device(port, bps, self.can_type)
                 self.bps_edit.setEnabled(False)
-                self.log("Connected to {}".format(port), color="green")
+                self.log(f"Connected to {port} : {bps * 10**-6} Mbps", color="green")
                 self.connect_button.setText("Disconnect")
             except Exception as e:
                 self.log("Failed to connect: {}".format(e), color="red")
         else:
-            self.can_handler.disconnect_device()
+            self.can_handler.disconnect_devive()
             self.log("Disconnected", color="green")
             self.connect_button.setText("Connect")
             self.bps_edit.setEnabled(True)
@@ -232,6 +257,89 @@ class MainWindow(QMainWindow):
         else:
             self.id_button.setText("StdID")
 
+    def change_radix_hex(self):
+        self.radix_type = "hex"
+
+        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
+
+        if self.radix_type_prev != "hex":
+            self.radix_type_prev = "hex"
+            # Save the current value of the edit field
+            temp_Stdid = self.stdid_edit.text()
+            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
+
+            # Change validator
+            self.stdid_edit.setValidator(self.hex_validator)
+            for edit in self.dataframe_edits:
+                edit.setValidator(self.hex_validator)
+
+            # Convert to hexadecimal
+            if temp_Stdid:
+                try:
+                    dec_value = int(temp_Stdid)
+                    hex_value = hex(dec_value)[2:].upper()
+                    self.stdid_edit.setText(hex_value)
+                except:
+                    pass
+
+            for i, edit in enumerate(self.dataframe_edits):
+                text = temp_dataframe[i]
+                if text:
+                    try:
+                        dec_value = int(text)
+                        hex_value = hex(dec_value)[2:].upper()
+                        edit.setText(hex_value)
+                    except:
+                        pass
+
+        # Change text color to red
+        self.stdid_edit.setStyleSheet("color: blue;font-weight: bold")
+        for edit in self.dataframe_edits:
+            edit.setStyleSheet("color: blue;font-weight: bold")
+
+    def change_radix_dec(self):
+        self.radix_type = "dec"
+        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
+
+        if self.radix_type_prev != "dec":
+            self.radix_type_prev = "dec"
+            # Save the current value of the edit field
+            temp_Stdid = self.stdid_edit.text()
+            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
+
+            # Change validator
+            self.stdid_edit.setValidator(self.dec_validator)
+            for edit in self.dataframe_edits:
+                edit.setValidator(self.dec_validator)
+
+            # Convert to decimal
+            if temp_Stdid:
+                try:
+                    hex_value = int(temp_Stdid, 16)
+                    dec_value = str(hex_value)
+                    self.stdid_edit.setText(dec_value)
+                except:
+                    pass
+            for i, edit in enumerate(self.dataframe_edits):
+                text = temp_dataframe[i]
+                if text:
+                    try:
+                        hex_value = int(text, 16)
+                        dec_value = str(hex_value)
+                        edit.setText(dec_value)
+                    except:
+                        pass
+        # Change Data Frame tex color to black
+        self.stdid_edit.setStyleSheet("color: black")
+        for edit in self.dataframe_edits:
+            edit.setStyleSheet("color: black")
+
+    def toggle_radix(self):
+        if self.radix_type == "hex":
+            self.change_radix_dec()
+        elif self.radix_type == "dec":
+            self.change_radix_hex()
+
     def send_data(self):
         sendable = True
         if self.can_handler.get_connect_status() == False:
@@ -242,13 +350,22 @@ class MainWindow(QMainWindow):
             sendable = False
 
         if sendable:
-            stdid = int(self.stdid_edit.text())
+            if self.radix_type == "hex":
+                stdid = int(self.stdid_edit.text(), 16)
+            else:
+                stdid = int(self.stdid_edit.text())
+
             # Create a data frame and exclude empty fields
             data = []
             for edit in self.dataframe_edits:
                 text = edit.text()
                 if text:  # If not empty
-                    value = int(text)
+                    if self.radix_type == "hex":
+                        text = str(text.upper())
+                        value = int(text.strip(), 16)
+                    else:
+                        value = int(text.strip())
+
                     # Clipped to 0-255 range
                     value = max(0, min(value, 255))
                     data.append(value)
@@ -286,8 +403,8 @@ class MainWindow(QMainWindow):
             else:
                 id_str = "_____" + f"{msg.arbitration_id:03x}"
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
-            data_str = ' '.join(f"{byte:02x}" for byte in msg.data)
-            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str} data:{data_str}"
+            data_str = ' '.join(f"{byte:02x}".upper() for byte in msg.data)
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str.upper()} data:{data_str}"
             print(text)
             self.log(text, color=color)
 
