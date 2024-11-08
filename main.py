@@ -219,7 +219,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 self.log("Failed to connect: {}".format(e), color="red")
         else:
-            self.can_handler.disconnect_device()
+            self.can_handler.disconnect_devive()
             self.log("Disconnected", color="green")
             self.connect_button.setText("Connect")
             self.bps_edit.setEnabled(True)
@@ -340,13 +340,22 @@ class MainWindow(QMainWindow):
             sendable = False
 
         if sendable:
-            stdid = int(self.stdid_edit.text())
+            if self.radix_type == "hex":
+                stdid = int(self.stdid_edit.text(), 16)
+            else:
+                stdid = int(self.stdid_edit.text())
+
             # Create a data frame and exclude empty fields
             data = []
             for edit in self.dataframe_edits:
                 text = edit.text()
                 if text:  # If not empty
-                    value = int(text)
+                    if self.radix_type == "hex":
+                        text = str(text.upper())
+                        value = int(text.strip(), 16)
+                    else:
+                        value = int(text.strip())
+
                     # Clipped to 0-255 range
                     value = max(0, min(value, 255))
                     data.append(value)
@@ -384,8 +393,8 @@ class MainWindow(QMainWindow):
             else:
                 id_str = "_____" + f"{msg.arbitration_id:03x}"
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
-            data_str = ' '.join(f"{byte:02x}" for byte in msg.data)
-            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str} data:{data_str}"
+            data_str = ' '.join(f"{byte:02x}".upper() for byte in msg.data)
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str.upper()} data:{data_str}"
             print(text)
             self.log(text, color=color)
 
