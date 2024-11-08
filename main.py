@@ -103,6 +103,7 @@ class MainWindow(QMainWindow):
         self.stdid_edit.setValidator(QIntValidator())
         data_layout.addWidget(self.stdid_edit)
         self.dataframe_label = QLabel("DataFrame")
+        self.dataframe_label.mousePressEvent = lambda event: self.toggle_radix()
         data_layout.addWidget(self.dataframe_label)
         self.dataframe_edits = []
         for i in range(8):
@@ -329,6 +330,12 @@ class MainWindow(QMainWindow):
         self.stdid_edit.setStyleSheet("color: black")
         for edit in self.dataframe_edits:
             edit.setStyleSheet("color: black")
+
+    def toggle_radix(self):
+        if self.radix_type == "hex":
+            self.change_radix_dec()
+        elif self.radix_type == "dec":
+            self.change_radix_hex()
 
     def send_data(self):
         sendable = True
