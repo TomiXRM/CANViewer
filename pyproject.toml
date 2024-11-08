@@ -12,6 +12,7 @@ pyserial = "^3.5"
 python-can = "4.3.1"
 argparse = "^1.4.0"
 pyside6 = "^6.8.0"
+nuitka = "^2.4.11"
 
 
 [build-system]

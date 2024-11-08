@@ -1,0 +1,54 @@
+name: Build and Release
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      # チェックアウト
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # Python のセットアップ
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # Poetry のインストール
+      - name: Install Poetry
+        run: pip install poetry
+
+      # 依存関係のインストール
+      - name: Install dependencies
+        run: poetry install --no-root --no-ansi --no-interaction
+
+      # Nuitka のインストール
+      - name: Install Nuitka
+        run: poetry run pip install nuitka
+
+      # Nuitka でビルド
+      - name: Build with Nuitka
+        run: |
+          mkdir -p dist
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            poetry run nuitka --onefile --windows-icon-from-ico=asset/icon.ico main.py --output-dir=dist
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            poetry run nuitka --onefile --macos-app-icon=asset/icon.icns main.py --output-dir=dist
+          else
+            poetry run nuitka --onefile --linux-icon=asset/icon.png main.py --output-dir=dist
+          fi
+        shell: bash
+
+          
+      # アーティファクトのアップロード
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ runner.os }} Build
+          path: dist/*
