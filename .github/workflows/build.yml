@@ -1,6 +1,10 @@
 name: Build and Release
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  pull_request:
 
 jobs:
   build:
@@ -10,45 +14,92 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      # チェックアウト
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Python のセットアップ
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      # Poetry のインストール
       - name: Install Poetry
         run: pip install poetry
 
-      # 依存関係のインストール
       - name: Install dependencies
         run: poetry install --no-root --no-ansi --no-interaction
 
-      # Nuitka のインストール
       - name: Install Nuitka
         run: poetry run pip install nuitka
 
-      # Nuitka でビルド
       - name: Build with Nuitka
         run: |
           mkdir -p dist
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            poetry run nuitka --onefile --windows-icon-from-ico=asset/icon.ico main.py --output-dir=dist
+            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --windows-icon-from-ico=asset/icon.ico --enable-plugin=pyside6 --output-dir=dist  --include-module=can.interfaces.slcan --assume-yes-for-downloads --windows-disable-console --remove-output
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            poetry run nuitka --onefile --macos-app-icon=asset/icon.icns main.py --output-dir=dist
+            poetry run nuitka main.py --output-filename=CANViewer --macos-create-app-bundle --standalone --macos-app-icon=asset/icon.icns --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --macos-app-name=CANViewer --macos-signed-app-name=CANViewer --macos-signed-app-name=com.tomixrm.CANViewer --remove-output
+
+            mv dist/main.app dist/CANViewer.app
+
+            hdiutil create -volname "CANViewer" -srcfolder dist/CANViewer.app -ov -format UDZO dist/CANViewer.dmg
+
+            rm -rf dist/CANViewer.app
           else
-            poetry run nuitka --onefile --linux-icon=asset/icon.png main.py --output-dir=dist
+            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --linux-icon=asset/icon.png --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --remove-output
           fi
         shell: bash
 
-          
-      # アーティファクトのアップロード
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }} Build
-          path: dist/*
+          name: ${{ matrix.os }}
+          path: dist/**
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      actions: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Download Artifacts (Ubuntu)
+        uses: actions/download-artifact@v4
+        with:
+          name: ubuntu-latest
+          path: ubuntu
+
+      - name: Download Artifacts (Windows)
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-latest
+          path: windows
+
+      - name: Download Artifacts (macOS)
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-latest
+          path: macos
+
+      - name: Compress Ubuntu Artifacts
+        run: zip -r ubuntu_artifacts.zip ubuntu
+  
+      - name: Compress Windows Artifacts
+        run: zip -r windows_artifacts.zip windows
+
+      - name: Compress macOS Artifacts
+        run: zip -r macos_artifacts.zip macos
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ubuntu_artifacts.zip
+            windows_artifacts.zip
+            macos_artifacts.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
