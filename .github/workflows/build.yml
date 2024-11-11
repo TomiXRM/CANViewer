@@ -86,20 +86,20 @@ jobs:
           path: macos
 
       - name: Compress Ubuntu Artifacts
-        run: zip -r ubuntu_artifacts.zip ubuntu
+        run: zip -r CANViewer_ubuntu_x86_64.zip ubuntu
   
       - name: Compress Windows Artifacts
-        run: zip -r windows_artifacts.zip windows
+        run: zip -r CANViewer_windows_x86_64.zip windows
 
       - name: Compress macOS Artifacts
-        run: zip -r macos_artifacts.zip macos
+        run: zip -r CANViewer_macos_arm64.zip macos
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ubuntu_artifacts.zip
-            windows_artifacts.zip
-            macos_artifacts.zip
+            CANViewer_ubuntu_x86_64.zip
+            CANViewer_windows_x86_64.zip
+            CANViewer_macos_arm64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
