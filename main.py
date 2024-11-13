@@ -33,9 +33,9 @@ class CANHandler(QThread):
     def init(self):
         super().__init__()
 
-    def connect_device(self, port, bps, bus_type):  # Connect and start receiving
+    def connect_device(self, port, bps, interface):  # Connect and start receiving
         try:
-            self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, bustype=bus_type)
+            self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, interface=interface)
             self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
         except Exception as e:
             print(e)
