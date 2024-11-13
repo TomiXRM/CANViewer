@@ -5,8 +5,8 @@ from datetime import datetime
 
 import can
 import serial.tools.list_ports
-from PySide6.QtCore import (QMutex, QRegularExpression, Qt, QThread, QTimer,
-                            Signal)
+from PySide6.QtCore import (QMutex, QRegularExpression, QSettings, Qt, QThread,
+                            QTimer, Signal)
 from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
                            QRegularExpressionValidator, QTextCursor)
 from PySide6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
@@ -34,8 +34,12 @@ class CANHandler(QThread):
         super().__init__()
 
     def connect_device(self, port, bps, bus_type):  # Connect and start receiving
-        self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, bustype=bus_type)
-        self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
+        try:
+            self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, bustype=bus_type)
+            self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
+        except Exception as e:
+            print(e)
+            self.can_bus = None
 
     def disconnect_devive(self):  # Disconnect and stop receiving
         self.can_notifier.stop()
@@ -71,6 +75,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout()
         self.central_widget.setLayout(self.layout)
+
+        self.settings = QSettings("CANViewer", "CANViewer")
 
         # ポートの選択
         port_layout = QHBoxLayout()
@@ -133,8 +139,9 @@ class MainWindow(QMainWindow):
         self.bps_edit = QComboBox()
         self.bps_edit.setMinimumWidth(120)
         self.bps_edit.setEditable(True)
-        self.bps_edit.addItems(["1000000", "500000", "100000"])  # よく使う通信速度を追加
-        self.bps_edit.setCurrentText("1000000")
+        self.bps_edit.addItems(["10k", "20k", "50k", "100k", "125k", "250k", "500k", "800k", "1000k"])
+        saved_bps = self.settings.value("bps", "1M")
+        self.bps_edit.setCurrentText(saved_bps)
         self.bps_edit.setValidator(QIntValidator())
         bps_layout.addWidget(self.bps_edit)
         self.can_config_layout.addLayout(bps_layout)
@@ -184,6 +191,20 @@ class MainWindow(QMainWindow):
         change_radix_dec_action.triggered.connect(self.change_radix_dec)
         self.addAction(change_radix_dec_action)
 
+    def closeEvent(self, event):
+        # bitrateの設定を保存
+        self.settings.setValue("bps", self.bps_edit.currentText())
+        event.accept()
+
+    def parse_bps(self, bps_str: str) -> int:
+        value = bps_str.upper().strip()
+        if bps_str.endswith('M') or bps_str.endswith('m'):
+            return int(int(bps_str[:-1]) * 1_000_000)
+        elif bps_str.endswith('K') or bps_str.endswith('k'):
+            return int(int(bps_str[:-1]) * 1_000)
+        else:
+            return int(bps_str)
+
     def refresh_ports(self):
         if self.can_type == "slcan":
             self.port_combobox.clear()
@@ -215,10 +236,10 @@ class MainWindow(QMainWindow):
         if self.can_handler.get_connect_status() == False:
             port = self.port_combobox.currentText()
             try:
-                bps = int(self.bps_edit.currentText())
+                bps = self.parse_bps(self.bps_edit.currentText())
                 self.can_handler.connect_device(port, bps, self.can_type)
                 self.bps_edit.setEnabled(False)
-                self.log(f"Connected to {port} : {bps * 10**-6} Mbps", color="green")
+                self.log(f"Connected to {port} : {bps} bps", color="green")
                 self.connect_button.setText("Disconnect")
             except Exception as e:
                 self.log("Failed to connect: {}".format(e), color="red")
