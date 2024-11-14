@@ -33,9 +33,14 @@ dec_validator = QIntValidator()  # DEC
 class CANHandler(QThread):
     send_can_signal = Signal(can.Message)
     can_bus = None
+    can_notifier = None
 
-    def init(self):
+    def __init__(self):
         super().__init__()
+        self.ignore_ids = []
+        self.pro_interface = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_ignore_ids)
 
     def connect_device(self, port, bps, interface):  # Connect and start receiving
         try:
@@ -63,13 +68,26 @@ class CANHandler(QThread):
 
     def can_on_recieve(self, msg: can.Message):
         msg.is_rx = True
+        if msg.arbitration_id in self.ignore_ids:
+            return
         msg.timestamp = datetime.now()
         self.send_can_signal.emit(msg)
+
+    def update_ignore_ids(self):
+        if self.pro_interface:
+            self.ignore_ids = self. pro_interface.ignore_ids
+
+    def clear_ignore_ids(self):
+        self.ignore_ids = []
+
+    def set_pro_interface(self, pro_interface):
+        self.pro_interface = pro_interface
+        self.timer.start(250)
 
 
 class ProInterface(QWidget):
 
-    def __init__(self, initial_radix_type="dec"):
+    def __init__(self, initial_radix_type="hex"):
         super().__init__()
         self.radix_type = initial_radix_type
         self.layout = QVBoxLayout()
@@ -92,38 +110,70 @@ class ProInterface(QWidget):
 
         self.layout.addLayout(self.bottom_layout)
 
+        self.ignore_ids = []
+        self.timer = QTimer()  # 定期的にテーブル内のIDを取得
+        self.timer.timeout.connect(self.get_ignore_ids)
+        self.timer.start(250)
+
+    def get_ignore_ids(self):
+        # テーブル内のIDを取得
+        # チェックボックスが付いているものだけを取得
+        ignore_ids = []
+        for row in range(self.table.rowCount()):
+            id_edit = self.table.cellWidget(row, 0)
+            checkbox_widget = self.table.cellWidget(row, 2)
+            if id_edit and checkbox_widget.findChild(QCheckBox).isChecked():
+                text = id_edit.text()
+                if text:
+                    if self.radix_type == "hex":
+                        try:
+                            dec_value = int(text, 16)
+                            ignore_ids.append(dec_value)
+                        except:
+                            pass
+                    elif self.radix_type == "dec":
+                        try:
+                            dec_value = int(text)
+                            ignore_ids.append(dec_value)
+                        except:
+                            pass
+        self.ignore_ids = ignore_ids
+
     def add_table_row(self):
-        self.table.add_row()
+        self.table.add_row(self.radix_type)
 
     def toggle_radix(self, radix_type):
         # テーブル内のIDの進数を変更 radix_type: "hex" or "dec"
         self.radix_type = radix_type
+        self.table.set_radix_type(radix_type)
         for row in range(self.table.rowCount()):
             id_edit = self.table.cellWidget(row, 0)
             if id_edit:
                 text = id_edit.text()
-                if text:
-                    if radix_type == "hex":
-                        try:
-                            dec_value = int(text)
-                            hex_value = hex(dec_value)[2:].upper()
-                            id_edit.setText(hex_value)
-                            id_edit.setValidator(hex_validator)
-                            id_edit.setStyleSheet("color: blue;font-weight: bold")
-                        except:
-                            pass
-                    elif radix_type == "dec":
-                        try:
-                            hex_value = int(text, 16)
-                            dec_value = str(hex_value)
-                            id_edit.setText(dec_value)
-                            id_edit.setValidator(dec_validator)
-                            id_edit.setStyleSheet("color: black")
-                        except:
-                            pass
+                if radix_type == "hex":
+                    id_edit.setValidator(hex_validator)
+                    id_edit.setStyleSheet("color: blue;font-weight: bold")
+                    try:
+                        dec_value = int(text)
+                        hex_value = hex(dec_value)[2:].upper()
+                        id_edit.setText(hex_value)
+
+                    except:
+                        pass
+
+                elif radix_type == "dec":
+                    id_edit.setValidator(dec_validator)
+                    id_edit.setStyleSheet("color: black")
+                    try:
+                        hex_value = int(text, 16)
+                        dec_value = str(hex_value)
+                        id_edit.setText(dec_value)
+
+                    except:
+                        pass
 
     class FilterRow(QTableWidget):
-        def __init__(self, initial_radix_type="dec"):
+        def __init__(self, initial_radix_type="hex"):
             super().__init__()
             self.setColumnCount(3)
             self.setHorizontalHeaderLabels(["Ignore ID", "Memo", "Enable"])
@@ -139,13 +189,13 @@ class ProInterface(QWidget):
 
             for _ in range(6):
                 self.add_row(radix_type=initial_radix_type)
+            self.radix_type = initial_radix_type
 
-        def add_row(self, id_value=None, memo=None, enable=True, radix_type="dec"):
+        def add_row(self, id_value='', memo='', enable=True, radix_type="dec"):
             self.setRowCount(self.rowCount() + 1)
 
             # ID用のQLineEdit
             id_edit = QLineEdit()
-
             if radix_type == "hex":
                 id_edit.setValidator(hex_validator)
                 id_edit.setStyleSheet("""
@@ -167,6 +217,7 @@ class ProInterface(QWidget):
                     padding: 5px;
                 }
             """)
+            id_edit.setText(id_value)
 
             # Memo用のQLineEdit
             memo_edit = QLineEdit()
@@ -178,6 +229,7 @@ class ProInterface(QWidget):
                     padding: 5px;
                 }
             """)
+            id_edit.setText(memo)
 
             # チェックボックス
             checkbox = QCheckBox()
@@ -213,6 +265,9 @@ class ProInterface(QWidget):
             self.setRowCount(0)
             for _ in range(6):
                 self.add_row(radix_type=self.radix_type)
+
+        def set_radix_type(self, radix_type):
+            self.radix_type = radix_type
 
 
 class MainWindow(QMainWindow):
@@ -332,6 +387,11 @@ class MainWindow(QMainWindow):
         self.can_handler = CANHandler()
         self.can_handler.send_can_signal.connect(self.print_msg)
 
+        self.pro_interface = ProInterface(initial_radix_type=self.radix_type)
+        self.holizontal_layout.addWidget(self.pro_interface, 300)
+        self.radix_change_signal.connect(self.pro_interface.toggle_radix)
+        self.pro_interface.setVisible(False)  # デフォルトでは非表示
+        self.can_handler.set_pro_interface(self.pro_interface)
         # shrotcut key setting
         # Ctrl + H change radix into Hexadecimal
         # Ctrl + D change radix into Decimal
@@ -598,17 +658,11 @@ class MainWindow(QMainWindow):
 
     def toggle_pro_mode(self):
         self.is_pro_mode = not self.is_pro_mode
-
+        self.pro_interface.setVisible(self.is_pro_mode)
         if self.is_pro_mode:
-            self.pro_interface = ProInterface(initial_radix_type=self.radix_type)
-            self.holizontal_layout.addWidget(self.pro_interface, 300)
-            self.radix_change_signal.connect(self.pro_interface.toggle_radix)
+            # 定期的にテーブル内のIDを取得
             self.resize(1100, 300)
-
         else:
-            self.radix_change_signal.disconnect(self.pro_interface.toggle_radix)
-            self.pro_interface.deleteLater()
-            self.pro_interface = None
             self.resize(800, 300)
 
 
