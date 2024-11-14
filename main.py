@@ -9,9 +9,9 @@ from PySide6.QtCore import (QMutex, QRegularExpression, QSettings, Qt, QThread,
                             QTimer, Signal)
 from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
                            QRegularExpressionValidator, QTextCursor)
-from PySide6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
-                               QLineEdit, QMainWindow, QPushButton, QTextEdit,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout,
+                               QLabel, QLineEdit, QMainWindow, QPushButton,
+                               QTableWidget, QTextEdit, QVBoxLayout, QWidget)
 
 parser = argparse.ArgumentParser(
     prog="CAN Send and Receive App",
@@ -24,6 +24,10 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)")
 
 args = parser.parse_args()
+
+# Varidation
+hex_validator = QRegularExpressionValidator(QRegularExpression("^[0-9A-Fa-f]+$"))  # HEX
+dec_validator = QIntValidator()  # DEC
 
 
 class CANHandler(QThread):
@@ -63,18 +67,171 @@ class CANHandler(QThread):
         self.send_can_signal.emit(msg)
 
 
+class ProInterface(QWidget):
+
+    def __init__(self, initial_radix_type="dec"):
+        super().__init__()
+        self.radix_type = initial_radix_type
+        self.layout = QVBoxLayout()
+
+        self.setLayout(self.layout)
+
+        self.table = self.FilterRow(initial_radix_type)
+
+        self.layout.addWidget(self.table)
+        self.table.setRowCount(6)
+
+        self.bottom_layout = QHBoxLayout()
+        self.add_button = QPushButton("Add Filter")
+        self.add_button.clicked.connect(self.add_table_row)
+        self.clear_button = QPushButton("Clear")
+        self.clear_button.clicked.connect(self.table.clear)
+        self.bottom_layout.addWidget(self.clear_button)
+        self.layout.addWidget(self.add_button)
+        self.bottom_layout.addWidget(self.add_button)
+
+        self.layout.addLayout(self.bottom_layout)
+
+    def add_table_row(self):
+        self.table.add_row()
+
+    def toggle_radix(self, radix_type):
+        # テーブル内のIDの進数を変更 radix_type: "hex" or "dec"
+        self.radix_type = radix_type
+        for row in range(self.table.rowCount()):
+            id_edit = self.table.cellWidget(row, 0)
+            if id_edit:
+                text = id_edit.text()
+                if text:
+                    if radix_type == "hex":
+                        try:
+                            dec_value = int(text)
+                            hex_value = hex(dec_value)[2:].upper()
+                            id_edit.setText(hex_value)
+                            id_edit.setValidator(hex_validator)
+                            id_edit.setStyleSheet("color: blue;font-weight: bold")
+                        except:
+                            pass
+                    elif radix_type == "dec":
+                        try:
+                            hex_value = int(text, 16)
+                            dec_value = str(hex_value)
+                            id_edit.setText(dec_value)
+                            id_edit.setValidator(dec_validator)
+                            id_edit.setStyleSheet("color: black")
+                        except:
+                            pass
+
+    class FilterRow(QTableWidget):
+        def __init__(self, initial_radix_type="dec"):
+            super().__init__()
+            self.setColumnCount(3)
+            self.setHorizontalHeaderLabels(["Ignore ID", "Memo", "Enable"])
+            self.horizontalHeader().setStretchLastSection(True)
+            self.setColumnWidth(0, 80)
+            self.setColumnWidth(1, 120)
+            self.setColumnWidth(2, 45)
+            self.setStyleSheet("""
+                QTableWidget {
+                    gridline-color: #a3a3a3;  /* グリッド線の色（明るい灰色） */
+                }
+            """)
+
+            for _ in range(6):
+                self.add_row(radix_type=initial_radix_type)
+
+        def add_row(self, id_value=None, memo=None, enable=True, radix_type="dec"):
+            self.setRowCount(self.rowCount() + 1)
+
+            # ID用のQLineEdit
+            id_edit = QLineEdit()
+
+            if radix_type == "hex":
+                id_edit.setValidator(hex_validator)
+                id_edit.setStyleSheet("""
+                QLineEdit {
+                    border: none;
+                    outline: none;
+                    background-color: transparent;
+                    padding: 5px;
+                    color: blue;font-weight: bold
+                }
+            """)
+            else:
+                id_edit.setValidator(dec_validator)
+                id_edit.setStyleSheet("""
+                QLineEdit {
+                    border: none;
+                    outline: none;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+
+            # Memo用のQLineEdit
+            memo_edit = QLineEdit()
+            memo_edit.setStyleSheet("""
+                QLineEdit {
+                    border: none;
+                    outline: none;
+                    background-color: transparent;
+                    padding: 5px;
+                }
+            """)
+
+            # チェックボックス
+            checkbox = QCheckBox()
+            checkbox.setCheckState(Qt.Checked)
+            checkbox_widget = QWidget()
+            checkbox_layout = QHBoxLayout(checkbox_widget)
+            checkbox_layout.addWidget(checkbox)
+            checkbox_layout.setAlignment(Qt.AlignCenter)  # キーワード引数ではなく引数として渡す
+            checkbox_layout.setContentsMargins(0, 0, 0, 0)
+
+            self.setCellWidget(self.rowCount() - 1, 0, id_edit)
+            self.setCellWidget(self.rowCount() - 1, 1, memo_edit)
+            self.setCellWidget(self.rowCount() - 1, 2, checkbox_widget)
+
+        def keyPressEvent(self, event):
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                current_row = self.currentRow()
+                current_column = self.currentColumn()
+
+                # チェックボックスがある列（例えば、2列目）かどうかを確認
+                if current_column == 2:
+                    checkbox_widget = self.cellWidget(current_row, current_column)
+                    if checkbox_widget:
+                        checkbox = checkbox_widget.findChild(QCheckBox)
+                        if checkbox:
+                            checkbox.setChecked(not checkbox.isChecked())
+                            return
+
+            # それ以外のキーイベントは親クラスに渡す
+            super().keyPressEvent(event)
+
+        def clear(self):
+            self.setRowCount(0)
+            for _ in range(6):
+                self.add_row(radix_type=self.radix_type)
+
+
 class MainWindow(QMainWindow):
+    radix_change_signal = Signal(str)
+
     def __init__(self):
         super().__init__()
         self.can_type = args.can  # "socketcan" or "slcan"
         self.radix_type = "dec"  # "hex" or "dec"
         self.radix_type_prev = "dec"
+
         self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
         self.setGeometry(100, 100, 800, 300)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
+        self.holizontal_layout = QHBoxLayout()
+        self.central_widget.setLayout(self.holizontal_layout)
         self.layout = QVBoxLayout()
-        self.central_widget.setLayout(self.layout)
+        self.holizontal_layout.addLayout(self.layout, 800)
 
         self.settings = QSettings("CANViewer", "CANViewer")
 
@@ -119,10 +276,6 @@ class MainWindow(QMainWindow):
 
             self.dataframe_edits.append(edit)
         self.layout.addLayout(data_layout)
-
-        # Varidation
-        self.hex_validator = QRegularExpressionValidator(QRegularExpression("^[0-9A-Fa-f]+$"))  # HEX
-        self.dec_validator = QIntValidator()  # DEC
 
         # ログの表示
         self.log_edit = QTextEdit()
@@ -173,6 +326,7 @@ class MainWindow(QMainWindow):
         self.timer = None
         self.sending = False
         self.is_extended_id = False
+        self.is_pro_mode = False
 
         # CAN Hanlder Setup
         self.can_handler = CANHandler()
@@ -190,6 +344,11 @@ class MainWindow(QMainWindow):
         change_radix_dec_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)])
         change_radix_dec_action.triggered.connect(self.change_radix_dec)
         self.addAction(change_radix_dec_action)
+
+        toggle_pro_mode = QAction('ProMode', self)
+        toggle_pro_mode.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_P)])
+        toggle_pro_mode.triggered.connect(self.toggle_pro_mode)
+        self.addAction(toggle_pro_mode)
 
     def closeEvent(self, event):
         # bitrateの設定を保存
@@ -285,14 +444,15 @@ class MainWindow(QMainWindow):
 
         if self.radix_type_prev != "hex":
             self.radix_type_prev = "hex"
+            self.radix_change_signal.emit(self.radix_type)
             # Save the current value of the edit field
             temp_Stdid = self.stdid_edit.text()
             temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
 
             # Change validator
-            self.stdid_edit.setValidator(self.hex_validator)
+            self.stdid_edit.setValidator(hex_validator)
             for edit in self.dataframe_edits:
-                edit.setValidator(self.hex_validator)
+                edit.setValidator(hex_validator)
 
             # Convert to hexadecimal
             if temp_Stdid:
@@ -324,14 +484,15 @@ class MainWindow(QMainWindow):
 
         if self.radix_type_prev != "dec":
             self.radix_type_prev = "dec"
+            self.radix_change_signal.emit(self.radix_type)
             # Save the current value of the edit field
             temp_Stdid = self.stdid_edit.text()
             temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
 
             # Change validator
-            self.stdid_edit.setValidator(self.dec_validator)
+            self.stdid_edit.setValidator(dec_validator)
             for edit in self.dataframe_edits:
-                edit.setValidator(self.dec_validator)
+                edit.setValidator(dec_validator)
 
             # Convert to decimal
             if temp_Stdid:
@@ -434,6 +595,21 @@ class MainWindow(QMainWindow):
             self.log_edit.append(message)
         else:
             self.log_edit.append(f"<font color='{color}'>{message}</font>")
+
+    def toggle_pro_mode(self):
+        self.is_pro_mode = not self.is_pro_mode
+
+        if self.is_pro_mode:
+            self.pro_interface = ProInterface(initial_radix_type=self.radix_type)
+            self.holizontal_layout.addWidget(self.pro_interface, 300)
+            self.radix_change_signal.connect(self.pro_interface.toggle_radix)
+            self.resize(1100, 300)
+
+        else:
+            self.radix_change_signal.disconnect(self.pro_interface.toggle_radix)
+            self.pro_interface.deleteLater()
+            self.pro_interface = None
+            self.resize(800, 300)
 
 
 def start_gui():
