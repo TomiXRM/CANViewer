@@ -1,16 +1,28 @@
-from PySide6.QtCore import (QMutex, QRegularExpression, QSettings, Qt, QThread,
-                            QTimer, Signal, Slot)
-from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
-                           QRegularExpressionValidator, QTextCursor)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout,
-                               QLabel, QLineEdit, QMainWindow, QPushButton,
-                               QTableWidget, QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtCore import (
+    Signal,
+    Slot,
+)
+from PySide6.QtGui import (
+    QIntValidator,
+)
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QWidget,
+)
+
+import can
 
 
 class CanMessageEditor(QWidget):
+    send_msg_signal = Signal(can.Message)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.is_extended_id = False  # Default: Standard ID
+        self.radix_type = "dec"
         # main layout
         self._layout = QHBoxLayout()
         self.setLayout(self._layout)
@@ -22,32 +34,66 @@ class CanMessageEditor(QWidget):
         self._layout.addWidget(self.id_button)
 
         # ID (Edit)
-        self.id_edit = QLineEdit('0')
+        self.id_edit = QLineEdit("0")
         self.id_edit.setValidator(QIntValidator())
         self._layout.addWidget(self.id_edit)
 
         # Label for DataFrame
-        self.dataframe_label = QLabel('DataFrame')
+        self.dataframe_label = QLabel("DataFrame")
         self.dataframe_label.mousePressEvent = lambda event: self.toggle_radix()
         self._layout.addWidget(self.dataframe_label)
 
         # DataFrame (Edit)
-        self.dataframe_edit = []
+        self.dataframe_edits = []
         for i in range(8):
-            edit = QLineEdit('0')
+            edit = QLineEdit("0")
             edit.setValidator(QIntValidator())
-            self.dataframe_edit.append(edit)
+            self.dataframe_edits.append(edit)
             self._layout.addWidget(edit)
 
+    def _translate_value(value_str: str = "", radix_type="dec"):
+        if radix_type == "hex":
+            value = int(str(value_str.upper()).strip(), 16)
+        else:
+            value = int(value_str.strip())
+        return value
+
     def toggle_stdid_extid(self):
-        self.is_extended_id = not self.is_extended_id  # モードを切り替え
+        self.is_extended_id = not self.is_extended_id
         if self.is_extended_id:
             self.id_button.setText("ExtID")
         else:
             self.id_button.setText("StdID")
 
     def get_message(self):
-        pass
-        # id = int(self.id_edit.text())
-        # dataframe = [int(edit.text()) for edit in self.dataframe_edit]
-        # return id, dataframe
+        dataframe = []
+        dlc = 8
+
+        # ID
+        id_value = self._translate_value(self.id_edit.text(), self.radix_type)
+        # TODO: Validate id_value with maximam number(StdID and ExtID)
+
+        # data frame
+        for n, edit in enumerate(self.dataframe_edits):
+            text = edit.text()
+            if text:
+                value = self._translate_value(text, self.radix_type)
+                value = max(0, min(value, 255))
+                dataframe.append(value)
+            else:
+                dlc = n
+                break
+
+        if not dataframe:
+            print("DataFrame is empty.")
+            # TODO: error handling when dataframe is empty
+
+        msg = can.Message(
+            arbitration_id=id_value,
+            data=dataframe,
+            dlc=dlc,
+            is_extended_id=self.is_extended_id,
+            is_rx=False,
+        )
+
+        return msg
