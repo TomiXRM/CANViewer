@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QComboBox, QHBoxLayout, QWidget
 
 
 class BaudrateSelector(QWidget):
-    def __init__(self, parent=None, default_bps: str = '1M'):
+    def __init__(self, parent=None, default_bps: str = "1M"):
         super().__init__(parent)
 
         self.layout = QHBoxLayout()
@@ -25,9 +25,9 @@ class BaudrateSelector(QWidget):
 
     def _parse_bps(self, bps_str: str) -> int:
         value = bps_str.upper().strip()
-        if bps_str.endswith('M') or bps_str.endswith('m'):
+        if bps_str.endswith("M") or bps_str.endswith("m"):
             return int(int(bps_str[:-1]) * 1_000_000)
-        elif bps_str.endswith('K') or bps_str.endswith('k'):
+        elif bps_str.endswith("K") or bps_str.endswith("k"):
             return int(int(bps_str[:-1]) * 1_000)
         else:
             return int(bps_str)

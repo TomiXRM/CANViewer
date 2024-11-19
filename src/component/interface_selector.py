@@ -2,15 +2,23 @@ import os
 
 import serial.tools.list_ports
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QPushButton,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class InterfaceSelector(QWidget):
 
     bps_signal = Signal(str)
 
-    def __init__(self, parent=None, can_type="slcan", can_handler=None, baudrate_selector=None):
+    def __init__(
+        self, parent=None, can_type="slcan", can_handler=None, baudrate_selector=None
+    ):
         super().__init__(parent)
 
         self._can_type = can_type  # "socketcan" or "slcan"
@@ -57,7 +65,9 @@ class InterfaceSelector(QWidget):
 
         elif self._can_type == "socketcan":
             # List available interfaces
-            output: str = os.popen("ip link show").read()  # Get the list of network interfaces(SocketCAN)
+            output: str = os.popen(
+                "ip link show"
+            ).read()  # Get the list of network interfaces(SocketCAN)
             can_interfaces = []
             lines = output.splitlines()
 
