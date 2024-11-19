@@ -5,13 +5,37 @@ from datetime import datetime
 
 import can
 import serial.tools.list_ports
-from PySide6.QtCore import (QMutex, QRegularExpression, QSettings, Qt, QThread,
-                            QTimer, Signal)
-from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
-                           QRegularExpressionValidator, QTextCursor)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout,
-                               QLabel, QLineEdit, QMainWindow, QPushButton,
-                               QTableWidget, QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtCore import (
+    QMutex,
+    QRegularExpression,
+    QSettings,
+    Qt,
+    QThread,
+    QTimer,
+    Signal,
+)
+from PySide6.QtGui import (
+    QAction,
+    QFont,
+    QIntValidator,
+    QKeySequence,
+    QRegularExpressionValidator,
+    QTextCursor,
+)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QTableWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 parser = argparse.ArgumentParser(
     prog="CAN Send and Receive App",
@@ -21,7 +45,9 @@ parser = argparse.ArgumentParser(
 )
 
 # -cオプションでCANのtypeを指定
-parser.add_argument("-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)")
+parser.add_argument(
+    "-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)"
+)
 
 args = parser.parse_args()
 
@@ -44,7 +70,12 @@ class CANHandler(QThread):
 
     def connect_device(self, port, bps, interface):  # Connect and start receiving
         try:
-            self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, interface=interface)
+            self.can_bus = can.interface.Bus(
+                channel=port,
+                bitrate=bps,
+                receive_own_messages=False,
+                interface=interface,
+            )
             self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
         except Exception as e:
             print(e)
@@ -75,7 +106,7 @@ class CANHandler(QThread):
 
     def update_ignore_ids(self):
         if self.pro_interface:
-            self.ignore_ids = self. pro_interface.ignore_ids
+            self.ignore_ids = self.pro_interface.ignore_ids
 
     def clear_ignore_ids(self):
         self.ignore_ids = []
@@ -181,24 +212,27 @@ class ProInterface(QWidget):
             self.setColumnWidth(0, 80)
             self.setColumnWidth(1, 120)
             self.setColumnWidth(2, 45)
-            self.setStyleSheet("""
+            self.setStyleSheet(
+                """
                 QTableWidget {
                     gridline-color: #a3a3a3;  /* グリッド線の色（明るい灰色） */
                 }
-            """)
+            """
+            )
 
             for _ in range(6):
                 self.add_row(radix_type=initial_radix_type)
             self.radix_type = initial_radix_type
 
-        def add_row(self, id_value='', memo='', enable=True, radix_type="dec"):
+        def add_row(self, id_value="", memo="", enable=True, radix_type="dec"):
             self.setRowCount(self.rowCount() + 1)
 
             # ID用のQLineEdit
             id_edit = QLineEdit()
             if radix_type == "hex":
                 id_edit.setValidator(hex_validator)
-                id_edit.setStyleSheet("""
+                id_edit.setStyleSheet(
+                    """
                 QLineEdit {
                     border: none;
                     outline: none;
@@ -206,29 +240,34 @@ class ProInterface(QWidget):
                     padding: 5px;
                     color: blue;font-weight: bold
                 }
-            """)
+            """
+                )
             else:
                 id_edit.setValidator(dec_validator)
-                id_edit.setStyleSheet("""
+                id_edit.setStyleSheet(
+                    """
                 QLineEdit {
                     border: none;
                     outline: none;
                     background-color: transparent;
                     padding: 5px;
                 }
-            """)
+            """
+                )
             id_edit.setText(id_value)
 
             # Memo用のQLineEdit
             memo_edit = QLineEdit()
-            memo_edit.setStyleSheet("""
+            memo_edit.setStyleSheet(
+                """
                 QLineEdit {
                     border: none;
                     outline: none;
                     background-color: transparent;
                     padding: 5px;
                 }
-            """)
+            """
+            )
             id_edit.setText(memo)
 
             # チェックボックス
@@ -237,7 +276,9 @@ class ProInterface(QWidget):
             checkbox_widget = QWidget()
             checkbox_layout = QHBoxLayout(checkbox_widget)
             checkbox_layout.addWidget(checkbox)
-            checkbox_layout.setAlignment(Qt.AlignCenter)  # キーワード引数ではなく引数として渡す
+            checkbox_layout.setAlignment(
+                Qt.AlignCenter
+            )  # キーワード引数ではなく引数として渡す
             checkbox_layout.setContentsMargins(0, 0, 0, 0)
 
             self.setCellWidget(self.rowCount() - 1, 0, id_edit)
@@ -347,7 +388,9 @@ class MainWindow(QMainWindow):
         self.bps_edit = QComboBox()
         self.bps_edit.setMinimumWidth(120)
         self.bps_edit.setEditable(True)
-        self.bps_edit.addItems(["10k", "20k", "50k", "100k", "125k", "250k", "500k", "800k", "1000k"])
+        self.bps_edit.addItems(
+            ["10k", "20k", "50k", "100k", "125k", "250k", "500k", "800k", "1000k"]
+        )
         saved_bps = self.settings.value("bps", "1M")
         self.bps_edit.setCurrentText(saved_bps)
         self.bps_edit.setValidator(QIntValidator())
@@ -395,17 +438,21 @@ class MainWindow(QMainWindow):
         # shrotcut key setting
         # Ctrl + H change radix into Hexadecimal
         # Ctrl + D change radix into Decimal
-        change_radix_hex_action = QAction('hex', self)
-        change_radix_hex_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)])
+        change_radix_hex_action = QAction("hex", self)
+        change_radix_hex_action.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)]
+        )
         change_radix_hex_action.triggered.connect(self.change_radix_hex)
         self.addAction(change_radix_hex_action)
 
-        change_radix_dec_action = QAction('dec', self)
-        change_radix_dec_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)])
+        change_radix_dec_action = QAction("dec", self)
+        change_radix_dec_action.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)]
+        )
         change_radix_dec_action.triggered.connect(self.change_radix_dec)
         self.addAction(change_radix_dec_action)
 
-        toggle_pro_mode = QAction('ProMode', self)
+        toggle_pro_mode = QAction("ProMode", self)
         toggle_pro_mode.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_P)])
         toggle_pro_mode.triggered.connect(self.toggle_pro_mode)
         self.addAction(toggle_pro_mode)
@@ -417,9 +464,9 @@ class MainWindow(QMainWindow):
 
     def parse_bps(self, bps_str: str) -> int:
         value = bps_str.upper().strip()
-        if bps_str.endswith('M') or bps_str.endswith('m'):
+        if bps_str.endswith("M") or bps_str.endswith("m"):
             return int(int(bps_str[:-1]) * 1_000_000)
-        elif bps_str.endswith('K') or bps_str.endswith('k'):
+        elif bps_str.endswith("K") or bps_str.endswith("k"):
             return int(int(bps_str[:-1]) * 1_000)
         else:
             return int(bps_str)
@@ -427,7 +474,9 @@ class MainWindow(QMainWindow):
     def refresh_ports(self):
         if self.can_type == "slcan":
             self.port_combobox.clear()
-            for n, (port, desc, devid) in enumerate(sorted(serial.tools.list_ports.comports()), 1):
+            for n, (port, desc, devid) in enumerate(
+                sorted(serial.tools.list_ports.comports()), 1
+            ):
                 print(f" {n}: {port:20} {desc} {devid}")
                 self.port_combobox.addItem(port)
                 if "CANable" in desc:
@@ -438,15 +487,15 @@ class MainWindow(QMainWindow):
                 self.port_combobox.addItem(interface)
 
     def get_socketcan_interfaces(self):
-        output = os.popen('ip link show').read()
+        output = os.popen("ip link show").read()
 
         can_interfaces = []
         lines = output.splitlines()
 
         for i, line in enumerate(lines):
-            if 'link/can' in line:
+            if "link/can" in line:
                 previous_line = lines[i - 1]
-                interface_name = previous_line.split(':')[1].strip()
+                interface_name = previous_line.split(":")[1].strip()
                 can_interfaces.append(interface_name)
 
         return can_interfaces
@@ -507,7 +556,9 @@ class MainWindow(QMainWindow):
             self.radix_change_signal.emit(self.radix_type)
             # Save the current value of the edit field
             temp_Stdid = self.stdid_edit.text()
-            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
+            temp_dataframe = [
+                edit.text() for edit in self.dataframe_edits
+            ]  # データフレームの値を取得して保持
 
             # Change validator
             self.stdid_edit.setValidator(hex_validator)
@@ -547,7 +598,9 @@ class MainWindow(QMainWindow):
             self.radix_change_signal.emit(self.radix_type)
             # Save the current value of the edit field
             temp_Stdid = self.stdid_edit.text()
-            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
+            temp_dataframe = [
+                edit.text() for edit in self.dataframe_edits
+            ]  # データフレームの値を取得して保持
 
             # Change validator
             self.stdid_edit.setValidator(dec_validator)
@@ -617,7 +670,12 @@ class MainWindow(QMainWindow):
                 self.log("DataFrame is empty.", color="red")
                 return
 
-            msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=self.is_extended_id, is_rx=False)
+            msg = can.Message(
+                arbitration_id=stdid,
+                data=data,
+                is_extended_id=self.is_extended_id,
+                is_rx=False,
+            )
 
             try:
                 self.can_handler.can_send(msg)
@@ -626,26 +684,26 @@ class MainWindow(QMainWindow):
                 self.log("Failed to send: {}".format(e), color="red")
 
     def print_msg(self, msg: can.Message):
-        dir = ''
+        dir = ""
         if msg is not None:
             if msg.is_rx:
                 if msg.is_extended_id:
-                    color: str = '#FFA22B'  # orange
+                    color: str = "#FFA22B"  # orange
                 else:
-                    color: str = '#EC4954'  # red
-                dir = 'RX'
+                    color: str = "#EC4954"  # red
+                dir = "RX"
             else:
                 if msg.is_extended_id:
-                    color: str = '#33C0FF'  # light blue
+                    color: str = "#33C0FF"  # light blue
                 else:
-                    color: str = '#2C4AFF'  # blue
-                dir = 'TX'
+                    color: str = "#2C4AFF"  # blue
+                dir = "TX"
             if msg.is_extended_id:
                 id_str = f"{msg.arbitration_id:08x}"
             else:
                 id_str = "_____" + f"{msg.arbitration_id:03x}"
             ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
-            data_str = ' '.join(f"{byte:02x}".upper() for byte in msg.data)
+            data_str = " ".join(f"{byte:02x}".upper() for byte in msg.data)
             text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str.upper()} data:{data_str}"
             print(text)
             self.log(text, color=color)
