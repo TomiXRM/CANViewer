@@ -39,6 +39,8 @@ from ..utils.validator import Validator
 class CommunicationController(QWidget):
 
     send_msg_signal = Signal()
+    log_clear_signal = Signal()
+    log_signal = Signal(str, str)
 
     def __init__(self):
         super().__init__()
@@ -70,8 +72,8 @@ class CommunicationController(QWidget):
         self.interval_send_timer = QTimer()
         self.interval_send_timer.timeout.connect(self._on_interval_send)
 
-    def _log(self, text: str):
-        print(text)
+    def _log(self, text: str, color: str = None):
+        self.log_signal.emit(text, color)
 
     @Slot()
     def _on_interval_edit_changed_callback(self):
@@ -88,7 +90,7 @@ class CommunicationController(QWidget):
 
     @Slot()
     def _on_clear_pressed_callback(self):
-        self._log("Cleared log")
+        self.log_clear_signal.emit()
 
     @Slot()
     def _on_start_stop_pressed_callback(self):
@@ -100,9 +102,8 @@ class CommunicationController(QWidget):
         else:
             interval_text: str = self._interval_edit.text()
             if interval_text == "" or Validator.decimalize(interval_text) <= 0:
-                print(interval_text)
                 self.send_msg_signal.emit()
-                self._log("Sent data once")
+                # self._log("Sent data once")
             else:
                 interval_value = Validator.decimalize(interval_text)
                 self.interval_send_timer.start(interval_value)
@@ -113,4 +114,3 @@ class CommunicationController(QWidget):
     @Slot()
     def _on_interval_send(self):
         self.send_msg_signal.emit()
-        self._log("Sent data")

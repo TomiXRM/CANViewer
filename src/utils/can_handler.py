@@ -16,10 +16,10 @@ class CANHandler(QThread):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_ignore_ids)
 
-    def connect_device(self, port, bps, interface):  # Connect and start receiving
+    def connect_device(self, channel, bps, interface):  # Connect and start receiving
         try:
             self.can_bus = can.interface.Bus(
-                channel=port,
+                channel=channel,
                 bitrate=bps,
                 receive_own_messages=False,
                 interface=interface,

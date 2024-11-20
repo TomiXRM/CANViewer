@@ -1,14 +1,14 @@
 import can
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton,
-                               QWidget)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QWidget
 
 from ..utils.validator import Validator
 
 
 class CanMessageEditor(QWidget):
     send_msg_signal = Signal(can.Message)
+    log_signal = Signal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,3 +83,6 @@ class CanMessageEditor(QWidget):
         )
 
         return msg
+
+    def _log(self, text: str, color: str = None):
+        self.log_signal.emit(text, color)

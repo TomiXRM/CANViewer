@@ -19,14 +19,14 @@ class BaudrateSelector(QWidget):
         self._bps_combobox.setValidator(QIntValidator())
         self._layout.addWidget(self._bps_combobox)
 
-    def get_value(self) -> int:
+    def get_baudrate(self) -> int:
         return self._parse_bps(self._bps_combobox.currentText())
 
     def set_enable(self):
         self._bps_combobox.setEnabled(True)
 
     def set_disable(self):
-        self._bps_combobox.setEnabled(False)
+        self._bps_combobox.setDisabled(True)
 
     def _parse_bps(self, bps_str: str) -> int:
         value = bps_str.upper().strip()

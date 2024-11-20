@@ -1,3 +1,6 @@
+from datetime import datetime
+
+import can
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QTextEdit
@@ -11,8 +14,33 @@ class LogBox(QTextEdit):
         self.setLineWrapMode(QTextEdit.NoWrap)
 
     @Slot(str, str)
-    def log(self, message: str, color: str = None):
+    def log(self, text: str, color: str = None):
         if color is None:
-            self.append(message)
+            self.append(text)
         else:
-            self.append(f"<font color='{color}'>{message}</font>")
+            self.append(f"<font color='{color}'>{text}</font>")
+
+    @Slot(can.Message)
+    def can_msg_log(self, msg: can.Message):
+        dir = ""
+        if msg is not None:
+            if msg.is_rx:
+                if msg.is_extended_id:
+                    color: str = "#FFA22B"  # orange
+                else:
+                    color: str = "#EC4954"  # red
+                dir = "RX"
+            else:
+                if msg.is_extended_id:
+                    color: str = "#33C0FF"  # light blue
+                else:
+                    color: str = "#2C4AFF"  # blue
+                dir = "TX"
+            if msg.is_extended_id:
+                id_str = f"{msg.arbitration_id:08x}"
+            else:
+                id_str = "_____" + f"{msg.arbitration_id:03x}"
+            ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
+            data_str = " ".join(f"{byte:02x}".upper() for byte in msg.data)
+            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str.upper()} data:{data_str}"
+            self.log(text, color=color)
