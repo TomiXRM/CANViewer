@@ -3,13 +3,8 @@ import sys
 
 import can
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import (
-    QApplication,
-    QHBoxLayout,
-    QMainWindow,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
+                               QVBoxLayout, QWidget)
 
 from src.component.baudrate_selector import BaudrateSelector
 from src.component.can_message_editor import CanMessageEditor
@@ -20,10 +15,10 @@ from src.utils.can_handler import CANHandler
 
 
 class MainWindow(QMainWindow):
-    radix_change_signal = Signal(str)
+    radix_status_signal = Signal(str)
     log_signal = Signal(str, str)
     can_log_signal = Signal(can.Message)
-    can_connect_status_signal = Signal(bool)
+    can_connection_status_signal = Signal(bool)
 
     def __init__(self, can_type, initial_radix_type="dec"):
         super().__init__()
@@ -62,9 +57,8 @@ class MainWindow(QMainWindow):
         # Signal Connection
         self.log_signal.connect(self.log_box.log)
         self.can_log_signal.connect(self.log_box.can_msg_log)
-        self.can_connect_status_signal.connect(
-            self.channel_selector.can_connection_change_callback
-        )
+        self.can_connection_status_signal.connect(self.channel_selector.can_connection_change_callback)
+        self.can_connection_status_signal.connect(self.communication_controller.can_connection_change_callback)
         ###############################################
         self.communication_controller.send_msg_signal.connect(self.send_msg)
         self.communication_controller.log_signal.connect(self.log)
@@ -89,13 +83,13 @@ class MainWindow(QMainWindow):
             self.can_handler.connect_device(channel, bps, self.can_type)
             # set status
             self.baudrate_selector.set_disable()
-            self.can_connect_status_signal.emit(True)
+            self.can_connection_status_signal.emit(True)
             self.log(f"Connected to {channel} : {bps} bps", color="green")
         else:
             self.can_handler.disconnect_devive()
             # set status
             self.baudrate_selector.set_enable()
-            self.can_connect_status_signal.emit(False)
+            self.can_connection_status_signal.emit(False)
             self.log("Disconnected", color="green")
 
 

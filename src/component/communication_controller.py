@@ -1,37 +1,10 @@
-from PySide6.QtCore import (
-    Property,
-    QMutex,
-    QObject,
-    QRegularExpression,
-    QSettings,
-    Qt,
-    QThread,
-    QTimer,
-    Signal,
-    Slot,
-)
-from PySide6.QtGui import (
-    QAction,
-    QFont,
-    QIntValidator,
-    QKeySequence,
-    QRegularExpressionValidator,
-    QTextCursor,
-)
-from PySide6.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QPushButton,
-    QTableWidget,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import (Property, QMutex, QObject, QRegularExpression,
+                            QSettings, Qt, QThread, QTimer, Signal, Slot)
+from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
+                           QRegularExpressionValidator, QTextCursor)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout,
+                               QLabel, QLineEdit, QMainWindow, QPushButton,
+                               QTableWidget, QTextEdit, QVBoxLayout, QWidget)
 
 from ..utils.validator import Validator
 
@@ -45,6 +18,7 @@ class CommunicationController(QWidget):
     def __init__(self):
         super().__init__()
         self.sendable = False
+        self.can_connection_status = False
 
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -72,6 +46,10 @@ class CommunicationController(QWidget):
         self.interval_send_timer = QTimer()
         self.interval_send_timer.timeout.connect(self._on_interval_send)
 
+    @Slot(bool)
+    def can_connection_change_callback(self, connected: bool):
+        self.can_connection_status = connected
+
     def _log(self, text: str, color: str = None):
         self.log_signal.emit(text, color)
 
@@ -94,6 +72,10 @@ class CommunicationController(QWidget):
 
     @Slot()
     def _on_start_stop_pressed_callback(self):
+        if self.can_connection_status == False:
+            self._log("No connection!! Please connect to CAN device", color="red")
+            return
+
         if self.sendable:
             self.interval_send_timer.stop()
             self.sendable = False
