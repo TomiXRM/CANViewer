@@ -1,19 +1,10 @@
-from PySide6.QtCore import (
-    Signal,
-    Slot,
-)
-from PySide6.QtGui import (
-    QIntValidator,
-)
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QWidget,
-)
-
 import can
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtGui import QIntValidator
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                               QWidget)
+
+from ..utils.validator import Validator
 
 
 class CanMessageEditor(QWidget):
@@ -25,6 +16,7 @@ class CanMessageEditor(QWidget):
         self.radix_type = "dec"
         # main layout
         self._layout = QHBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
 
         # ID (StdID/ExtID)
@@ -47,16 +39,10 @@ class CanMessageEditor(QWidget):
         self.dataframe_edits = []
         for i in range(8):
             edit = QLineEdit("0")
+            edit.setContentsMargins(0, 0, 0, 0)
             edit.setValidator(QIntValidator())
             self.dataframe_edits.append(edit)
             self._layout.addWidget(edit)
-
-    def _translate_value(value_str: str = "", radix_type="dec"):
-        if radix_type == "hex":
-            value = int(str(value_str.upper()).strip(), 16)
-        else:
-            value = int(value_str.strip())
-        return value
 
     def toggle_stdid_extid(self):
         self.is_extended_id = not self.is_extended_id
@@ -65,19 +51,19 @@ class CanMessageEditor(QWidget):
         else:
             self.id_button.setText("StdID")
 
-    def get_message(self):
+    def get_message(self) -> can.Message:
         dataframe = []
         dlc = 8
 
         # ID
-        id_value = self._translate_value(self.id_edit.text(), self.radix_type)
+        id_value = Validator.decimalize(self.id_edit.text(), self.radix_type)
         # TODO: Validate id_value with maximam number(StdID and ExtID)
 
         # data frame
         for n, edit in enumerate(self.dataframe_edits):
             text = edit.text()
             if text:
-                value = self._translate_value(text, self.radix_type)
+                value = Validator.decimalize(text, self.radix_type)
                 value = max(0, min(value, 255))
                 dataframe.append(value)
             else:
