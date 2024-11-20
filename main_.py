@@ -6,11 +6,12 @@ from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
                                QVBoxLayout, QWidget)
 
-from can_handler import CANHandler
-from component.baudrate_selector import BaudrateSelector
-from component.can_message_editor import CanMessageEditor
-from component.interface_selector import InterfaceSelector
-from component.logbox import LogBox
+from src.component.baudrate_selector import BaudrateSelector
+from src.component.can_message_editor import CanMessageEditor
+from src.component.communication_controller import CommunicationController
+from src.component.interface_selector import InterfaceSelector
+from src.component.logbox import LogBox
+from src.utils.can_handler import CANHandler
 
 
 class MainWindow(QMainWindow):
@@ -36,12 +37,18 @@ class MainWindow(QMainWindow):
         interface_selector = InterfaceSelector()
         can_message_editor = CanMessageEditor()
         baudrate_selector = BaudrateSelector()
+        communication_controller = CommunicationController()
         log_box = LogBox()
 
         self.layout.addWidget(interface_selector)
         self.layout.addWidget(can_message_editor)
         self.layout.addWidget(log_box)
-        self.layout.addWidget(baudrate_selector)
+
+        # Bottom Layout
+        self.layout_bottom = QHBoxLayout()
+        self.layout_bottom.addWidget(baudrate_selector)
+        self.layout_bottom.addWidget(communication_controller)
+        self.layout.addLayout(self.layout_bottom)
 
 
 def main():
