@@ -152,11 +152,13 @@ class MainWindow(QMainWindow):
     def _change_radix_to_dec(self) -> None:
         self.radix_type = "dec"
         self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self.radix_status_signal.emit(self.radix_type)
 
     @Slot()
     def _change_radix_to_hex(self) -> None:
         self.radix_type = "hex"
         self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self.radix_status_signal.emit(self.radix_type)
 
 
 def main():

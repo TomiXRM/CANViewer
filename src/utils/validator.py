@@ -10,7 +10,7 @@ class Validator:
     dec_validator = QIntValidator()
 
     @staticmethod
-    def decimalize(value_str: str = "", radix_type="dec") -> int:
+    def decimalize(value_str: str, radix_type="dec") -> int:
         if radix_type == "hex":
             value = int(str(value_str.replace(",", "")).strip(), 16)
         else:
@@ -18,22 +18,17 @@ class Validator:
         return value
 
     @staticmethod
-    def text_decimalize_from_hex_text(self, hex_text: str) -> str:
-        dec_value: int = self.decimalize(hex_text)
+    def text_hexadecimalize_from_decimal_text(dec_text: str) -> str:
+        if dec_text == "":
+            return ""
+        dec_value: int = Validator.decimalize(dec_text, "dec")
         hex_value_text: str = hex(dec_value)[2:].upper()
         return hex_value_text
 
     @staticmethod
-    def text_hexadecimalize_from_decimal_text(self, dec_text: str) -> str:
-        hex_value: int = int(dec_text, 16)
-        dec_value_text: str = str(hex_value)
+    def text_decimalize_from_hex_text(hex_text: str) -> str:
+        if hex_text == "":
+            return ""
+        dec_value: int = Validator.decimalize(hex_text, "hex")
+        dec_value_text: str = str(dec_value)
         return dec_value_text
-
-    @staticmethod
-    def assign_style_on_text_edit_with_radix(
-        text_edit: QLineEdit, radix_type: str
-    ) -> None:
-        if radix_type == "dec":
-            pass
-        elif radix_type == "hex":
-            pass

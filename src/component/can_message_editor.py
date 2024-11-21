@@ -15,6 +15,12 @@ class CanMessageEditor(QWidget):
         super().__init__(parent)
         self.is_extended_id = False  # Default: Standard ID
         self.radix_type = "dec"
+
+        # color style
+        self.style_edit_default = ""
+        self.style_edit_hex = """color: blue;
+                            font-weight: bold;"""
+
         # main layout
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -46,8 +52,40 @@ class CanMessageEditor(QWidget):
             self._layout.addWidget(edit)
 
     @Slot(str)
-    def update_radix(self, radix: str) -> None:
-        self.radix_type = radix
+    def update_radix(self, new_radix: str) -> None:
+        # check if radix is same as current radix
+        if self.radix_type == new_radix:
+            return
+        self.radix_type = new_radix  # update radix
+
+        # update style and text
+        if new_radix == "dec":
+            # ID Edit
+            self.id_edit.setStyleSheet(self.style_edit_default)
+            self.id_edit.setValidator(Validator.dec_validator)
+            self.id_edit.setText(
+                Validator.text_decimalize_from_hex_text(self.id_edit.text())
+            )
+            # DataFrame Edits
+            for edit in self.dataframe_edits:
+                edit.setStyleSheet(self.style_edit_default)
+                edit.setValidator(Validator.dec_validator)
+                edit.setText(Validator.text_decimalize_from_hex_text(edit.text()))
+
+        elif new_radix == "hex":
+            # ID Edit
+            self.id_edit.setStyleSheet(self.style_edit_hex)
+            self.id_edit.setValidator(Validator.hex_validator)
+            self.id_edit.setText(
+                Validator.text_hexadecimalize_from_decimal_text(self.id_edit.text())
+            )
+            # DataFrame Edits
+            for edit in self.dataframe_edits:
+                edit.setStyleSheet(self.style_edit_hex)
+                edit.setValidator(Validator.hex_validator)
+                edit.setText(
+                    Validator.text_hexadecimalize_from_decimal_text(edit.text())
+                )
 
     @Slot()
     def toggle_stdid_extid(self) -> None:
