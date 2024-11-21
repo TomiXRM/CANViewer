@@ -2,8 +2,7 @@ import os
 
 import serial.tools.list_ports
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QPushButton,
-                               QWidget)
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
 
 
 class ChannelSelector(QWidget):

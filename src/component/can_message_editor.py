@@ -3,8 +3,7 @@ from typing import Tuple, Union
 import can
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton,
-                               QWidget)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QWidget
 
 from ..utils.validator import Validator
 

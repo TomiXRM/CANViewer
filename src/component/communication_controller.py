@@ -1,10 +1,37 @@
-from PySide6.QtCore import (Property, QMutex, QObject, QRegularExpression,
-                            QSettings, Qt, QThread, QTimer, Signal, Slot)
-from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
-                           QRegularExpressionValidator, QTextCursor)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout,
-                               QLabel, QLineEdit, QMainWindow, QPushButton,
-                               QTableWidget, QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtCore import (
+    Property,
+    QMutex,
+    QObject,
+    QRegularExpression,
+    QSettings,
+    Qt,
+    QThread,
+    QTimer,
+    Signal,
+    Slot,
+)
+from PySide6.QtGui import (
+    QAction,
+    QFont,
+    QIntValidator,
+    QKeySequence,
+    QRegularExpressionValidator,
+    QTextCursor,
+)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QTableWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..utils.validator import Validator
 
@@ -53,6 +80,8 @@ class CommunicationController(QWidget):
     def _log(self, text: str, color: str = None) -> None:
         self.log_signal.emit(text, color)
 
+    # When the interval text box is edited, this function is called.
+    # If the text box is blank or has a value less than or equal to 0, the button text changes to "Send".
     @Slot()
     def _on_interval_edit_changed_callback(self) -> None:
         if (
@@ -70,6 +99,9 @@ class CommunicationController(QWidget):
     def _on_clear_pressed_callback(self) -> None:
         self.log_clear_signal.emit()
 
+    # When the start/stop button is pressed, this function is called.
+    # If the button text is "Send", the send_can_msg_trigger_signal is emitted.
+    # If the button text is "Start", the 'interval_send_timer' is started with the interval value from the text box, and the button text is changed to "Stop".
     @Slot()
     def _on_start_stop_pressed_callback(self) -> None:
         if self.can_connection_status == False:

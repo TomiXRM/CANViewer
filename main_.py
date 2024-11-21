@@ -57,14 +57,18 @@ class MainWindow(QMainWindow):
 
         # Set Key-Board Shortcuts
         # Ctrl + D : Change Radix to DEC
-        change_radix_to_dec_aciton = QAction('Change Radix to Dec', self)
-        change_radix_to_dec_aciton.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)])
+        change_radix_to_dec_aciton = QAction("Change Radix to Dec", self)
+        change_radix_to_dec_aciton.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)]
+        )
         change_radix_to_dec_aciton.triggered.connect(self._change_radix_to_dec)
         self.addAction(change_radix_to_dec_aciton)
 
         # Ctrl + H :  Change Radix to HEX
-        change_radix_to_hex_aciton = QAction('Change Radix to Hex', self)
-        change_radix_to_hex_aciton.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)])
+        change_radix_to_hex_aciton = QAction("Change Radix to Hex", self)
+        change_radix_to_hex_aciton.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)]
+        )
         change_radix_to_hex_aciton.triggered.connect(self._change_radix_to_hex)
         self.addAction(change_radix_to_hex_aciton)
 
@@ -72,19 +76,32 @@ class MainWindow(QMainWindow):
         # TODO: Implement Pro Mode
 
         # Signal Connection
-        self.radix_status_signal.connect(self.can_message_editor.update_radix)  # When the Radix changes, notify new radix
+
+        # When the Radix changes, notify new radix
+        self.radix_status_signal.connect(self.can_message_editor.update_radix)
         self.log_signal.connect(self.log_box.log)  # Send log data to logbox
-        self.can_log_signal.connect(self.log_box.can_msg_log)  # Send CAN-BUS Message to logbox
-        self.can_connection_status_signal.connect(self.channel_selector.can_connection_change_callback)  # Notify the CAN-BUS connection status to the 'channel_selector'
-        self.can_connection_status_signal.connect(self.communication_controller.can_connection_change_callback)  # Notify the CAN-BUS connection status to the 'communication_controller'
+        # Send CAN-BUS Message to logbox
+        self.can_log_signal.connect(self.log_box.can_msg_log)
+        # Notify the CAN-BUS connection status to the 'channel_selector'
+        self.can_connection_status_signal.connect(self.channel_selector.can_connection_change_callback)
+        # Notify the CAN-BUS connection status to the 'communication_controller'
+        self.can_connection_status_signal.connect(self.communication_controller.can_connection_change_callback)
+
         ###############################################
-        self.communication_controller.send_can_msg_trigger_signal.connect(self.send_can_msg)  # Send a Trigger when the 'communication_controller' order to send a message
-        self.communication_controller.log_signal.connect(self.log)  # Handle Log data from 'communication_controller'
-        self.communication_controller.log_clear_signal.connect(self.log_box.clear)  # Clear Log data from 'communication_controller'
+        # Send a Trigger when the 'communication_controller' order to send a message
+        self.communication_controller.send_can_msg_trigger_signal.connect(self.send_can_msg)
+        # Handle Log data from 'communication_controller'
+        self.communication_controller.log_signal.connect(self.log)
+        # Clear Log data from 'communication_controller'
+        self.communication_controller.log_clear_signal.connect(self.log_box.clear)
+
         ###############################################
-        self.channel_selector.channel_signal.connect(self._toggle_can_interface_connection)  # Connect/Disconnect CAN-BUS Interface(with receiving 'channel name')
+        # Connect/Disconnect CAN-BUS Interface(with receiving 'channel name')
+        self.channel_selector.channel_signal.connect(self._toggle_can_interface_connection)
+
         ###############################################
-        self.can_message_editor.log_signal.connect(self.log)  # Handle Log data from 'can_message_editor'
+        # Handle Log data from 'can_message_editor'
+        self.can_message_editor.log_signal.connect(self.log)
 
     @Slot()
     def send_can_msg(self) -> None:
@@ -113,17 +130,22 @@ class MainWindow(QMainWindow):
     def _toggle_can_interface_connection(self, channel: str) -> None:
         # check CAN-BUS-Interface connection status
         if self.can_handler.get_connect_status() == False:
-            bps: int = self.baudrate_selector.get_baudrate()  # Get Baudrate from 'baudrate_selector'
-            self.can_handler.connect_device(channel, bps, self.can_type)  # Make a connection
+            # Get Baudrate from 'baudrate_selector'
+            bps: int = self.baudrate_selector.get_baudrate()
+            # Make a connection
+            self.can_handler.connect_device(channel, bps, self.can_type)
+
             # set statuses
             self.baudrate_selector.set_disable()  # Make baudrate_selector uneditable
-            self.can_connection_status_signal.emit(True)  # Notify the CAN-BUS connection is established to the 'channel_selector'
+            # Notify the CAN-BUS connection is established to the 'channel_selector'
+            self.can_connection_status_signal.emit(True)
             self.log(f"Connected to {channel} : {bps} bps", color="green")
         else:
             self.can_handler.disconnect_devive()
             # set statuses
             self.baudrate_selector.set_enable()  # Make baudrate_selector editable
-            self.can_connection_status_signal.emit(False)  # Notify the CAN-BUS connection is disconnected to the 'channel_selector'
+            # Notify the CAN-BUS connection is disconnected to the 'channel_selector'
+            self.can_connection_status_signal.emit(False)
             self.log("Disconnected", color="green")
 
     @Slot()
