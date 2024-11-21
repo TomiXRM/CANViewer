@@ -1,6 +1,14 @@
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
-from PySide6.QtWidgets import (QCheckBox, QHBoxLayout, QLineEdit, QPushButton,
-                               QTableWidget, QVBoxLayout, QWidget)
+from PySide6.QtGui import QKeyEvent
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QTableWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..utils.validator import Validator
 
@@ -46,7 +54,7 @@ class MessageFilter(QWidget):
         self._button_layout.addWidget(clear_button)
 
     @Slot(str)
-    def update_ignore_ids(self):
+    def update_ignore_ids(self) -> None:
         ignore_ids = []
         for row in range(self._table.rowCount()):
             id_edit = self._table.cellWidget(row, 0)
@@ -58,12 +66,13 @@ class MessageFilter(QWidget):
         self.ignore_ids = ignore_ids
         self.update_filter_id_signal.emit(ignore_ids)
 
-    def get_ignore_ids(self):
+    def get_ignore_ids(self) -> list:
         return self.ignore_ids
 
-    def add_table_row(self):
+    def add_table_row(self) -> None:
         self._table._add_table_row(radix_type=self.radix_type)
 
+    @Slot(str)
     def update_radix(self, new_radix: str) -> None:
         if self.radix_type == new_radix:
             return
@@ -130,7 +139,7 @@ class MessageFilter(QWidget):
                 self._add_table_row(radix_type=initial_radix_type)
             self.radix_type = initial_radix_type
 
-        def _add_table_row(self, id_value="", memo="", radix_type="dec"):
+        def _add_table_row(self, id_value="", memo="", radix_type="dec") -> None:
             self.setRowCount(self.rowCount() + 1)
 
             # LineEdit for ID
@@ -162,7 +171,7 @@ class MessageFilter(QWidget):
             self.setCellWidget(self.rowCount() - 1, 1, memo_edit)
             self.setCellWidget(self.rowCount() - 1, 2, checkbox_widget)
 
-        def keyPressEvent(self, event):
+        def keyPressEvent(self, event: QKeyEvent) -> None:
             if event.key() in (Qt.Key_Return, Qt.Key_Enter):
                 current_row = self.currentRow()
                 current_column = self.currentColumn()
@@ -179,7 +188,7 @@ class MessageFilter(QWidget):
             # それ以外のキーイベントは親クラスに渡す
             super().keyPressEvent(event)
 
-        def clear(self):
+        def clear(self) -> None:
             self.setRowCount(0)
             for _ in range(6):
                 self._add_table_row(radix_type=self.radix_type)
