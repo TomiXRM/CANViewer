@@ -41,20 +41,20 @@ class ChannelSelector(QWidget):
         self._refresh()
 
     @Slot(bool)
-    def can_connection_change_callback(self, connected: bool):
+    def can_connection_change_callback(self, connected: bool) -> None:
         if connected:
             self.connection_complete()
         else:
             self.disconnection_complete()
 
-    def connection_complete(self):
+    def connection_complete(self) -> None:
         self._connect_button.setText("Disconnect")
 
-    def disconnection_complete(self):
+    def disconnection_complete(self) -> None:
         self._connect_button.setText("Connect")
 
     @Slot()
-    def _refresh(self):
+    def _refresh(self) -> None:
         self._channel_combobox.clear()
         if self._can_type == "slcan":
             # List available ports
@@ -89,5 +89,5 @@ class ChannelSelector(QWidget):
             print("Invalid CAN type")
 
     @Slot()
-    def _on_connect_button_clicked(self):
+    def _on_connect_button_clicked(self) -> None:
         self.channel_signal.emit(self._channel_combobox.currentText())

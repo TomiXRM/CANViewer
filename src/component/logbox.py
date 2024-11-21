@@ -13,15 +13,17 @@ class LogBox(QTextEdit):
         self.setFont(QFont("Menlo", 14))
         self.setLineWrapMode(QTextEdit.NoWrap)
 
+    # show log to logbox
     @Slot(str, str)
-    def log(self, text: str, color: str = None):
+    def log(self, text: str, color: str = None) -> None:
         if color is None:
             self.append(text)
         else:
             self.append(f"<font color='{color}'>{text}</font>")
 
+    # show can message to logbox
     @Slot(can.Message)
-    def can_msg_log(self, msg: can.Message):
+    def can_msg_log(self, msg: can.Message) -> None:
         dir = ""
         if msg is not None:
             if msg.is_rx:

@@ -1,13 +1,15 @@
+from typing import Tuple, Union
+
 import can
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QWidget
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                               QWidget)
 
 from ..utils.validator import Validator
 
 
 class CanMessageEditor(QWidget):
-    send_msg_signal = Signal(can.Message)
     log_signal = Signal(str, str)
 
     def __init__(self, parent=None):
@@ -44,26 +46,37 @@ class CanMessageEditor(QWidget):
             self.dataframe_edits.append(edit)
             self._layout.addWidget(edit)
 
-    def toggle_stdid_extid(self):
+    @Slot(str)
+    def update_radix(self, radix: str) -> None:
+        self.radix_type = radix
+
+    @Slot()
+    def toggle_stdid_extid(self) -> None:
         self.is_extended_id = not self.is_extended_id
         if self.is_extended_id:
             self.id_button.setText("ExtID")
         else:
             self.id_button.setText("StdID")
 
-    def get_message(self) -> can.Message:
+    # returns message and usable(True/False)
+    def get_message(self) -> Tuple[Union[can.Message, None], bool]:
         dataframe = []
         dlc = 8
 
         # ID
-        id_value = Validator.decimalize(self.id_edit.text(), self.radix_type)
+        id_text = self.id_edit.text()
+        if not id_text:
+            print("ID is empty.")
+            self._log("ID is empty.", "red")
+            return [None, False]  # msg , usable
+        id_value = Validator.decimalize(id_text, self.radix_type)
         # TODO: Validate id_value with maximam number(StdID and ExtID)
 
         # data frame
-        for n, edit in enumerate(self.dataframe_edits):
-            text = edit.text()
-            if text:
-                value = Validator.decimalize(text, self.radix_type)
+        for n, data_edit in enumerate(self.dataframe_edits):
+            data_text: str = data_edit.text()
+            if data_text:
+                value = Validator.decimalize(data_text, self.radix_type)
                 value = max(0, min(value, 255))
                 dataframe.append(value)
             else:
@@ -72,6 +85,8 @@ class CanMessageEditor(QWidget):
 
         if not dataframe:
             print("DataFrame is empty.")
+            self._log("DataFrame is empty.", "red")
+            return [None, False]  # msg , usable
             # TODO: error handling when dataframe is empty
 
         msg = can.Message(
@@ -82,7 +97,7 @@ class CanMessageEditor(QWidget):
             is_rx=False,
         )
 
-        return msg
+        return [msg, True]  # msg , usable
 
-    def _log(self, text: str, color: str = None):
+    def _log(self, text: str, color: str = None) -> None:
         self.log_signal.emit(text, color)

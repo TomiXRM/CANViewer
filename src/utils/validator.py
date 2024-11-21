@@ -9,9 +9,12 @@ class Validator:
     dec_validator = QIntValidator()  # DEC
 
     @staticmethod
-    def decimalize(value_str: str = "", radix_type="dec"):
+    def decimalize(value_str: str = "", radix_type="dec") -> int:
         if radix_type == "hex":
             value = int(str(value_str.replace(",", "")).strip(), 16)
         else:
             value = int(value_str.replace(",", "").strip())
         return value
+
+    # @staticmethod
+    # def decimalize_hex_to_str

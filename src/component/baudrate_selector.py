@@ -22,10 +22,10 @@ class BaudrateSelector(QWidget):
     def get_baudrate(self) -> int:
         return self._parse_bps(self._bps_combobox.currentText())
 
-    def set_enable(self):
+    def set_enable(self) -> None:
         self._bps_combobox.setEnabled(True)
 
-    def set_disable(self):
+    def set_disable(self) -> None:
         self._bps_combobox.setDisabled(True)
 
     def _parse_bps(self, bps_str: str) -> int:

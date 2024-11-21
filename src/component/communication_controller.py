@@ -11,7 +11,7 @@ from ..utils.validator import Validator
 
 class CommunicationController(QWidget):
 
-    send_msg_signal = Signal()
+    send_can_msg_trigger_signal = Signal()
     log_clear_signal = Signal()
     log_signal = Signal(str, str)
 
@@ -47,14 +47,14 @@ class CommunicationController(QWidget):
         self.interval_send_timer.timeout.connect(self._on_interval_send)
 
     @Slot(bool)
-    def can_connection_change_callback(self, connected: bool):
+    def can_connection_change_callback(self, connected: bool) -> None:
         self.can_connection_status = connected
 
-    def _log(self, text: str, color: str = None):
+    def _log(self, text: str, color: str = None) -> None:
         self.log_signal.emit(text, color)
 
     @Slot()
-    def _on_interval_edit_changed_callback(self):
+    def _on_interval_edit_changed_callback(self) -> None:
         if (
             self._interval_edit.text() == ""
             or Validator.decimalize(self._interval_edit.text()) <= 0
@@ -67,11 +67,11 @@ class CommunicationController(QWidget):
                 self._start_button.setText("Start")
 
     @Slot()
-    def _on_clear_pressed_callback(self):
+    def _on_clear_pressed_callback(self) -> None:
         self.log_clear_signal.emit()
 
     @Slot()
-    def _on_start_stop_pressed_callback(self):
+    def _on_start_stop_pressed_callback(self) -> None:
         if self.can_connection_status == False:
             self._log("No connection!! Please connect to CAN device", color="red")
             return
@@ -84,7 +84,7 @@ class CommunicationController(QWidget):
         else:
             interval_text: str = self._interval_edit.text()
             if interval_text == "" or Validator.decimalize(interval_text) <= 0:
-                self.send_msg_signal.emit()
+                self.send_can_msg_trigger_signal.emit()
                 # self._log("Sent data once")
             else:
                 interval_value = Validator.decimalize(interval_text)
@@ -94,5 +94,5 @@ class CommunicationController(QWidget):
                 self._log(f"Started sending data every {interval_value}ms")
 
     @Slot()
-    def _on_interval_send(self):
-        self.send_msg_signal.emit()
+    def _on_interval_send(self) -> None:
+        self.send_can_msg_trigger_signal.emit()
