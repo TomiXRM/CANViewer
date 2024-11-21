@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         self.can_type = can_type
 
         self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
-        self.setGeometry(100, 100, 800, 300)
+        self.setGeometry(500, 200, 800, 300)
 
         self._central_widget = QWidget()
         self.setCentralWidget(self._central_widget)
@@ -131,6 +131,12 @@ class MainWindow(QMainWindow):
         ###############################################
         # Handle Log data from 'can_message_editor'
         self.can_message_editor.log_signal.connect(self.log)
+
+        ###############################################
+        # Update Ignore IDs from 'message_filter'
+        self.message_filter.update_filter_id_signal.connect(
+            self.can_handler.update_ignore_ids
+        )
 
         # load settings
         self.settings = QSettings("CANViewer", "CANViewer")

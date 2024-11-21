@@ -1,6 +1,5 @@
 from PySide6.QtCore import QRegularExpression
 from PySide6.QtGui import QIntValidator, QRegularExpressionValidator
-from PySide6.QtWidgets import QLineEdit
 
 
 class Validator:
