@@ -2,7 +2,7 @@ import argparse
 import sys
 
 import can
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import QSettings, Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence, Qt
 from PySide6.QtWidgets import (
     QApplication,
@@ -12,12 +12,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.component.message_filter import MessageFilter
 from src.component.baudrate_selector import BaudrateSelector
 from src.component.can_message_editor import CanMessageEditor
 from src.component.channel_selector import ChannelSelector
 from src.component.communication_controller import CommunicationController
 from src.component.logbox import LogBox
+from src.component.message_filter import MessageFilter
 from src.utils.can_handler import CANHandler
 
 
@@ -131,6 +131,15 @@ class MainWindow(QMainWindow):
         ###############################################
         # Handle Log data from 'can_message_editor'
         self.can_message_editor.log_signal.connect(self.log)
+
+        # load settings
+        self.settings = QSettings("CANViewer", "CANViewer")
+        saved_bps = self.settings.value("bps", "1M")
+        self.baudrate_selector.set_baudrate_text(saved_bps)
+
+    def closeEvent(self, event) -> None:
+        self.settings.setValue("bps", self.baudrate_selector.get_baudrate_text())
+        event.accept()
 
     @Slot()
     def send_can_msg(self) -> None:
