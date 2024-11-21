@@ -11,10 +11,10 @@ from ..utils.validator import Validator
 class CanMessageEditor(QWidget):
     log_signal = Signal(str, str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, initial_radix_type="dec"):
         super().__init__(parent)
         self.is_extended_id = False  # Default: Standard ID
-        self.radix_type = "dec"
+        self.radix_type = initial_radix_type
 
         # color style
         self.style_edit_default = ""

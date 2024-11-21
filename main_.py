@@ -4,9 +4,15 @@ import sys
 import can
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QAction, QKeySequence, Qt
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+)
 
+from src.component.message_filter import MessageFilter
 from src.component.baudrate_selector import BaudrateSelector
 from src.component.can_message_editor import CanMessageEditor
 from src.component.channel_selector import ChannelSelector
@@ -29,13 +35,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
         self.setGeometry(100, 100, 800, 300)
 
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-
-        self.layout = QVBoxLayout()
-        self.holizontal_layout = QHBoxLayout()
-        self.holizontal_layout.addLayout(self.layout, 800)
-        self.central_widget.setLayout(self.holizontal_layout)
+        self._central_widget = QWidget()
+        self.setCentralWidget(self._central_widget)
 
         # Components
         self.can_handler = CANHandler()
@@ -43,17 +44,28 @@ class MainWindow(QMainWindow):
         self.can_message_editor = CanMessageEditor()
         self.baudrate_selector = BaudrateSelector()
         self.communication_controller = CommunicationController()
+        self.message_filter = MessageFilter()
         self.log_box = LogBox()
 
-        self.layout.addWidget(self.channel_selector)
-        self.layout.addWidget(self.can_message_editor)
-        self.layout.addWidget(self.log_box)
+        # Layout
+        self._layout_main = QVBoxLayout()
+        self._layout_holizontal = QHBoxLayout()
+        self._layout_holizontal.addLayout(self._layout_main, 800)
+        self._central_widget.setLayout(self._layout_holizontal)
+
+        self._layout_main.addWidget(self.channel_selector)
+        self._layout_main.addWidget(self.can_message_editor)
+        self._layout_main.addWidget(self.log_box)
+        self._layout_holizontal.addWidget(self.message_filter, 300)
 
         # Bottom Layout
-        self.layout_bottom = QHBoxLayout()
-        self.layout_bottom.addWidget(self.baudrate_selector)
-        self.layout_bottom.addWidget(self.communication_controller)
-        self.layout.addLayout(self.layout_bottom)
+        self._layout_bottom = QHBoxLayout()
+        self._layout_bottom.addWidget(self.baudrate_selector)
+        self._layout_bottom.addWidget(self.communication_controller)
+        self._layout_main.addLayout(self._layout_bottom)
+
+        # Hide Message Filter Default
+        self.message_filter.setVisible(False)
 
         # Set Key-Board Shortcuts
         # Ctrl + D : Change Radix to DEC
@@ -73,31 +85,48 @@ class MainWindow(QMainWindow):
         self.addAction(change_radix_to_hex_aciton)
 
         # Ctrl + P : Extend Pro Mode
-        # TODO: Implement Pro Mode
+        _toggle_message_filter = QAction("Show and Hide the Message Filter", self)
+        _toggle_message_filter.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_P)])
+        _toggle_message_filter.triggered.connect(self._toggle_message_filter)
+        self.addAction(_toggle_message_filter)
 
         # Signal Connection
 
         # When the Radix changes, notify new radix
         self.radix_status_signal.connect(self.can_message_editor.update_radix)
-        self.log_signal.connect(self.log_box.log)  # Send log data to logbox
+        self.radix_status_signal.connect(self.message_filter.update_radix)
+
+        # Send log data to logbox
+        self.log_signal.connect(self.log_box.log)
+
         # Send CAN-BUS Message to logbox
         self.can_log_signal.connect(self.log_box.can_msg_log)
-        # Notify the CAN-BUS connection status to the 'channel_selector'
-        self.can_connection_status_signal.connect(self.channel_selector.can_connection_change_callback)
-        # Notify the CAN-BUS connection status to the 'communication_controller'
-        self.can_connection_status_signal.connect(self.communication_controller.can_connection_change_callback)
+
+        # Notify the CAN-BUS connection status
+        self.can_connection_status_signal.connect(
+            self.channel_selector.can_connection_change_callback
+        )
+        self.can_connection_status_signal.connect(
+            self.communication_controller.can_connection_change_callback
+        )
 
         ###############################################
         # Send a Trigger when the 'communication_controller' order to send a message
-        self.communication_controller.send_can_msg_trigger_signal.connect(self.send_can_msg)
+        self.communication_controller.send_can_msg_trigger_signal.connect(
+            self.send_can_msg
+        )
+
         # Handle Log data from 'communication_controller'
         self.communication_controller.log_signal.connect(self.log)
+
         # Clear Log data from 'communication_controller'
         self.communication_controller.log_clear_signal.connect(self.log_box.clear)
 
         ###############################################
         # Connect/Disconnect CAN-BUS Interface(with receiving 'channel name')
-        self.channel_selector.channel_signal.connect(self._toggle_can_interface_connection)
+        self.channel_selector.channel_signal.connect(
+            self._toggle_can_interface_connection
+        )
 
         ###############################################
         # Handle Log data from 'can_message_editor'
@@ -147,6 +176,15 @@ class MainWindow(QMainWindow):
             # Notify the CAN-BUS connection is disconnected to the 'channel_selector'
             self.can_connection_status_signal.emit(False)
             self.log("Disconnected", color="green")
+
+    @Slot()
+    def _toggle_message_filter(self) -> None:
+        if self.message_filter.isVisible():
+            self.message_filter.setHidden(True)
+            self.resize(800, 300)
+        else:
+            self.message_filter.setVisible(True)
+            self.resize(1100, 300)
 
     @Slot()
     def _change_radix_to_dec(self) -> None:
