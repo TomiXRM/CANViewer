@@ -1,22 +1,19 @@
 from datetime import datetime
 
 import can
-from PySide6.QtCore import QThread, QTimer, Signal
+from PySide6.QtCore import QThread, Signal, Slot
 
 
 class CANHandler(QThread):
     send_can_signal = Signal(can.Message)
-    can_bus = None
-    can_notifier = None
 
     def __init__(self):
         super().__init__()
         self.ignore_ids = []
-        self.pro_interface = None
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_ignore_ids)
+        self.can_bus = None
+        self.can_notifier = None
 
-    def connect_device(self, channel, bps, interface):  # Connect and start receiving
+    def connect_device(self, channel: str, bps: int, interface: str) -> None:
         try:
             self.can_bus = can.interface.Bus(
                 channel=channel,
@@ -24,41 +21,34 @@ class CANHandler(QThread):
                 receive_own_messages=False,
                 interface=interface,
             )
-            self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
+            self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
         except Exception as e:
             print(e)
             self.can_bus = None
 
-    def disconnect_devive(self):  # Disconnect and stop receiving
+    def disconnect_devive(self) -> None:
         self.can_notifier.stop()
         self.can_bus.shutdown()
         self.can_bus = None
 
-    def get_connect_status(self):
+    def get_connect_status(self) -> bool:
         if self.can_bus is None:
             return False
         else:
             return True
 
-    def can_send(self, msg: can.Message):
+    def can_send(self, msg: can.Message) -> None:
         msg.timestamp = datetime.now()
         msg.is_rx = False
         self.can_bus.send(msg)
 
-    def can_on_recieve(self, msg: can.Message):
+    def _on_can_recieve(self, msg: can.Message) -> None:
         msg.is_rx = True
         if msg.arbitration_id in self.ignore_ids:
             return
         msg.timestamp = datetime.now()
         self.send_can_signal.emit(msg)
 
-    def update_ignore_ids(self):
-        if self.pro_interface:
-            self.ignore_ids = self.pro_interface.ignore_ids
-
-    def clear_ignore_ids(self):
-        self.ignore_ids = []
-
-    def set_pro_interface(self, pro_interface):
-        self.pro_interface = pro_interface
-        self.timer.start(250)
+    @Slot()
+    def update_ignore_ids(self, ignore_ids: list[int]) -> None:
+        self.ignore_ids = ignore_ids
