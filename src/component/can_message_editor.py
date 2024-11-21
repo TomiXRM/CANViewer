@@ -18,7 +18,7 @@ class CanMessageEditor(QWidget):
 
         # color style
         self.style_edit_default = ""
-        self.style_edit_hex = """color: blue;
+        self.style_edit_hex = """color: #0082FF;
                             font-weight: bold;"""
 
         # main layout
