@@ -34,9 +34,9 @@ jobs:
         run: |
           mkdir -p dist
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --windows-icon-from-ico=asset/icon.ico --enable-plugin=pyside6 --output-dir=dist  --include-module=can.interfaces.slcan --assume-yes-for-downloads --windows-disable-console --remove-output
+            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --follow-imports --windows-icon-from-ico=asset/icon.ico --enable-plugin=pyside6 --output-dir=dist  --include-module=can.interfaces.slcan --assume-yes-for-downloads --windows-disable-console --remove-output
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            poetry run nuitka main.py --output-filename=CANViewer --macos-create-app-bundle --standalone --macos-app-icon=asset/icon.icns --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --macos-app-name=CANViewer --macos-signed-app-name=CANViewer --macos-signed-app-name=com.tomixrm.CANViewer --remove-output
+            poetry run nuitka main.py --output-filename=CANViewer --macos-create-app-bundle --standalone --follow-imports --macos-app-icon=asset/icon.icns --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --macos-app-name=CANViewer --macos-signed-app-name=CANViewer --macos-signed-app-name=com.tomixrm.CANViewer --remove-output
 
             mv dist/main.app dist/CANViewer.app
 
@@ -44,7 +44,7 @@ jobs:
 
             rm -rf dist/CANViewer.app
           else
-            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --linux-icon=asset/icon.png --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --remove-output
+            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --follow-imports --linux-icon=asset/icon.png --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --remove-output
           fi
         shell: bash
 
