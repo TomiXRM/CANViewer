@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import can
 from PySide6.QtCore import QThread, Signal, Slot
 
@@ -38,7 +36,6 @@ class CANHandler(QThread):
             return True
 
     def can_send(self, msg: can.Message) -> None:
-        msg.timestamp = datetime.now()
         msg.is_rx = False
         self.can_bus.send(msg)
 
@@ -46,7 +43,6 @@ class CANHandler(QThread):
         msg.is_rx = True
         if msg.arbitration_id in self.ignore_ids:
             return
-        msg.timestamp = datetime.now()
         self.send_can_signal.emit(msg)
 
     @Slot()

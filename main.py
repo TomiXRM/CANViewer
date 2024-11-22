@@ -1,5 +1,6 @@
 import argparse
 import sys
+from typing import Optional
 
 import can
 from PySide6.QtCore import QSettings, Signal, Slot
@@ -168,7 +169,7 @@ class MainWindow(QMainWindow):
 
     # This method handles the logbox. If you want to show log-data on the logbox, you can use this method.
     @Slot(str, str)
-    def log(self, text: str, color: str = None) -> None:
+    def log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)
 
     @Slot(str)

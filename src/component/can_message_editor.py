@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import can
 from PySide6.QtCore import Signal, Slot
@@ -105,7 +105,7 @@ class CanMessageEditor(QWidget):
         if not id_text:
             print("ID is empty.")
             self._log("ID is empty.", "red")
-            return [None, False]  # msg , usable
+            return None, False  # msg , usable
         id_value = Validator.decimalize(id_text, self.radix_type)
         # TODO: Validate id_value with maximam number(StdID and ExtID)
 
@@ -123,7 +123,7 @@ class CanMessageEditor(QWidget):
         if not dataframe:
             print("DataFrame is empty.")
             self._log("DataFrame is empty.", "red")
-            return [None, False]  # msg , usable
+            return None, False  # msg , usable
             # TODO: error handling when dataframe is empty
 
         msg = can.Message(
@@ -134,7 +134,7 @@ class CanMessageEditor(QWidget):
             is_rx=False,
         )
 
-        return [msg, True]  # msg , usable
+        return msg, True  # msg , usable
 
-    def _log(self, text: str, color: str = None) -> None:
+    def _log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)

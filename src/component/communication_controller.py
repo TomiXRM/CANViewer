@@ -1,3 +1,5 @@
+from typing import Optional
+
 from PySide6.QtCore import (
     Property,
     QMutex,
@@ -77,7 +79,7 @@ class CommunicationController(QWidget):
     def can_connection_change_callback(self, connected: bool) -> None:
         self.can_connection_status = connected
 
-    def _log(self, text: str, color: str = None) -> None:
+    def _log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)
 
     # When the interval text box is edited, this function is called.

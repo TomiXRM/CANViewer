@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 import can
 from PySide6.QtCore import Slot
@@ -15,7 +16,8 @@ class LogBox(QTextEdit):
 
     # show log to logbox
     @Slot(str, str)
-    def log(self, text: str, color: str = None) -> None:
+    def log(self, text: str, color: Optional[str] = None) -> None:
+
         if color is None:
             self.append(text)
         else:
@@ -31,17 +33,18 @@ class LogBox(QTextEdit):
         # color setting with message direction and ID type
         # RX: orange, TX: blue
         # EXT: light blue, STD: blue
+        color: str = ""
         if msg.is_rx:
             if msg.is_extended_id:
-                color: str = "#FFA22B"  # orange
+                color = "#FFA22B"  # orange
             else:
-                color: str = "#EC4954"  # red
+                color = "#EC4954"  # red
             dir = "RX"
         else:
             if msg.is_extended_id:
-                color: str = "#33C0FF"  # light blue
+                color = "#33C0FF"  # light blue
             else:
-                color: str = "#2C4AFF"  # blue
+                color = "#2C4AFF"  # blue
             dir = "TX"
 
         # make ID string with message ID type(Std/Ext)

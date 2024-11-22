@@ -1,8 +1,8 @@
 import os
 
-import serial.tools.list_ports
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
+from serial.tools.list_ports import comports
 
 
 class ChannelSelector(QWidget):
@@ -57,9 +57,7 @@ class ChannelSelector(QWidget):
         self._channel_combobox.clear()
         if self._can_type == "slcan":
             # List available ports
-            for n, (port, desc, devid) in enumerate(
-                sorted(serial.tools.list_ports.comports()), 1
-            ):
+            for n, (port, desc, devid) in enumerate(sorted(comports()), 1):
                 print(f" {n}: {port:20} {desc} {devid}")
                 self._channel_combobox.addItem(port)
                 # set CANable device as default
