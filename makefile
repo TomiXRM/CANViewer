@@ -1,4 +1,4 @@
-.PHONY: run run-socketcan clean install
+.PHONY: run run-socketcan clean install format
 run:
 	poetry run python main.py
 
@@ -9,3 +9,9 @@ clean:
 
 install:
 	poetry install
+
+format:
+	poetry run black .
+
+analyze:
+	poetry run mypy .
