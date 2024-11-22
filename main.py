@@ -101,6 +101,7 @@ class MainWindow(QMainWindow):
 
         # Send CAN-BUS Message to logbox
         self.can_log_signal.connect(self.log_box.can_msg_log)
+        self.can_handler.send_can_signal.connect(self.log_box.can_msg_log)
 
         # Notify the CAN-BUS connection status
         self.can_connection_status_signal.connect(
