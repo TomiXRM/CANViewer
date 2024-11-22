@@ -91,6 +91,14 @@ class MainWindow(QMainWindow):
         _toggle_message_filter.triggered.connect(self._toggle_message_filter)
         self.addAction(_toggle_message_filter)
 
+        # Ctrl + Enter : Send CAN Message
+        send_can_msg_with_keybind_action = QAction("Send CAN Message", self)
+        send_can_msg_with_keybind_action.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_Return)]
+        )
+        send_can_msg_with_keybind_action.triggered.connect(self.send_can_msg)
+        self.addAction(send_can_msg_with_keybind_action)
+
         # Signal Connection
 
         # When the Radix changes, notify new radix
@@ -151,6 +159,11 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def send_can_msg(self) -> None:
+        # Check CAN connection status
+        if self.can_handler.get_connect_status() == False:
+            self.log("No connection!! Please connect to CAN device", color="red")
+            return
+        
         # Get CAN Message from 'can_message_editor'
         msg: can.Message | None  # msg: can.Message | None
         usable: bool  # message is usable or not
