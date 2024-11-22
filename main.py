@@ -1,678 +1,240 @@
 import argparse
-import os
 import sys
-from datetime import datetime
+from typing import Optional
 
 import can
-import serial.tools.list_ports
-from PySide6.QtCore import (QMutex, QRegularExpression, QSettings, Qt, QThread,
-                            QTimer, Signal)
-from PySide6.QtGui import (QAction, QFont, QIntValidator, QKeySequence,
-                           QRegularExpressionValidator, QTextCursor)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout,
-                               QLabel, QLineEdit, QMainWindow, QPushButton,
-                               QTableWidget, QTextEdit, QVBoxLayout, QWidget)
-
-parser = argparse.ArgumentParser(
-    prog="CAN Send and Receive App",
-    usage="python main.py [options]",
-    epilog="end",  # ヘルプの後に表示
-    add_help=True,  # -h/–-helpオプションの追加
+from PySide6.QtCore import QSettings, Signal, Slot
+from PySide6.QtGui import QAction, QKeySequence, Qt
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
 )
 
-# -cオプションでCANのtypeを指定
-parser.add_argument("-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)")
-
-args = parser.parse_args()
-
-# Varidation
-hex_validator = QRegularExpressionValidator(QRegularExpression("^[0-9A-Fa-f]+$"))  # HEX
-dec_validator = QIntValidator()  # DEC
-
-
-class CANHandler(QThread):
-    send_can_signal = Signal(can.Message)
-    can_bus = None
-    can_notifier = None
-
-    def __init__(self):
-        super().__init__()
-        self.ignore_ids = []
-        self.pro_interface = None
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_ignore_ids)
-
-    def connect_device(self, port, bps, interface):  # Connect and start receiving
-        try:
-            self.can_bus = can.interface.Bus(channel=port, bitrate=bps, receive_own_messages=False, interface=interface)
-            self.can_notifier = can.Notifier(self.can_bus, [self.can_on_recieve])
-        except Exception as e:
-            print(e)
-            self.can_bus = None
-
-    def disconnect_devive(self):  # Disconnect and stop receiving
-        self.can_notifier.stop()
-        self.can_bus.shutdown()
-        self.can_bus = None
-
-    def get_connect_status(self):
-        if self.can_bus is None:
-            return False
-        else:
-            return True
-
-    def can_send(self, msg: can.Message):
-        msg.timestamp = datetime.now()
-        msg.is_rx = False
-        self.can_bus.send(msg)
-
-    def can_on_recieve(self, msg: can.Message):
-        msg.is_rx = True
-        if msg.arbitration_id in self.ignore_ids:
-            return
-        msg.timestamp = datetime.now()
-        self.send_can_signal.emit(msg)
-
-    def update_ignore_ids(self):
-        if self.pro_interface:
-            self.ignore_ids = self. pro_interface.ignore_ids
-
-    def clear_ignore_ids(self):
-        self.ignore_ids = []
-
-    def set_pro_interface(self, pro_interface):
-        self.pro_interface = pro_interface
-        self.timer.start(250)
-
-
-class ProInterface(QWidget):
-
-    def __init__(self, initial_radix_type="hex"):
-        super().__init__()
-        self.radix_type = initial_radix_type
-        self.layout = QVBoxLayout()
-
-        self.setLayout(self.layout)
-
-        self.table = self.FilterRow(initial_radix_type)
-
-        self.layout.addWidget(self.table)
-        self.table.setRowCount(6)
-
-        self.bottom_layout = QHBoxLayout()
-        self.add_button = QPushButton("Add Filter")
-        self.add_button.clicked.connect(self.add_table_row)
-        self.clear_button = QPushButton("Clear")
-        self.clear_button.clicked.connect(self.table.clear)
-        self.bottom_layout.addWidget(self.clear_button)
-        self.layout.addWidget(self.add_button)
-        self.bottom_layout.addWidget(self.add_button)
-
-        self.layout.addLayout(self.bottom_layout)
-
-        self.ignore_ids = []
-        self.timer = QTimer()  # 定期的にテーブル内のIDを取得
-        self.timer.timeout.connect(self.get_ignore_ids)
-        self.timer.start(250)
-
-    def get_ignore_ids(self):
-        # テーブル内のIDを取得
-        # チェックボックスが付いているものだけを取得
-        ignore_ids = []
-        for row in range(self.table.rowCount()):
-            id_edit = self.table.cellWidget(row, 0)
-            checkbox_widget = self.table.cellWidget(row, 2)
-            if id_edit and checkbox_widget.findChild(QCheckBox).isChecked():
-                text = id_edit.text()
-                if text:
-                    if self.radix_type == "hex":
-                        try:
-                            dec_value = int(text, 16)
-                            ignore_ids.append(dec_value)
-                        except:
-                            pass
-                    elif self.radix_type == "dec":
-                        try:
-                            dec_value = int(text)
-                            ignore_ids.append(dec_value)
-                        except:
-                            pass
-        self.ignore_ids = ignore_ids
-
-    def add_table_row(self):
-        self.table.add_row(self.radix_type)
-
-    def toggle_radix(self, radix_type):
-        # テーブル内のIDの進数を変更 radix_type: "hex" or "dec"
-        self.radix_type = radix_type
-        self.table.set_radix_type(radix_type)
-        for row in range(self.table.rowCount()):
-            id_edit = self.table.cellWidget(row, 0)
-            if id_edit:
-                text = id_edit.text()
-                if radix_type == "hex":
-                    id_edit.setValidator(hex_validator)
-                    id_edit.setStyleSheet("color: blue;font-weight: bold")
-                    try:
-                        dec_value = int(text)
-                        hex_value = hex(dec_value)[2:].upper()
-                        id_edit.setText(hex_value)
-
-                    except:
-                        pass
-
-                elif radix_type == "dec":
-                    id_edit.setValidator(dec_validator)
-                    id_edit.setStyleSheet("color: black")
-                    try:
-                        hex_value = int(text, 16)
-                        dec_value = str(hex_value)
-                        id_edit.setText(dec_value)
-
-                    except:
-                        pass
-
-    class FilterRow(QTableWidget):
-        def __init__(self, initial_radix_type="hex"):
-            super().__init__()
-            self.setColumnCount(3)
-            self.setHorizontalHeaderLabels(["Ignore ID", "Memo", "Enable"])
-            self.horizontalHeader().setStretchLastSection(True)
-            self.setColumnWidth(0, 80)
-            self.setColumnWidth(1, 120)
-            self.setColumnWidth(2, 45)
-            self.setStyleSheet("""
-                QTableWidget {
-                    gridline-color: #a3a3a3;  /* グリッド線の色（明るい灰色） */
-                }
-            """)
-
-            for _ in range(6):
-                self.add_row(radix_type=initial_radix_type)
-            self.radix_type = initial_radix_type
-
-        def add_row(self, id_value='', memo='', enable=True, radix_type="dec"):
-            self.setRowCount(self.rowCount() + 1)
-
-            # ID用のQLineEdit
-            id_edit = QLineEdit()
-            if radix_type == "hex":
-                id_edit.setValidator(hex_validator)
-                id_edit.setStyleSheet("""
-                QLineEdit {
-                    border: none;
-                    outline: none;
-                    background-color: transparent;
-                    padding: 5px;
-                    color: blue;font-weight: bold
-                }
-            """)
-            else:
-                id_edit.setValidator(dec_validator)
-                id_edit.setStyleSheet("""
-                QLineEdit {
-                    border: none;
-                    outline: none;
-                    background-color: transparent;
-                    padding: 5px;
-                }
-            """)
-            id_edit.setText(id_value)
-
-            # Memo用のQLineEdit
-            memo_edit = QLineEdit()
-            memo_edit.setStyleSheet("""
-                QLineEdit {
-                    border: none;
-                    outline: none;
-                    background-color: transparent;
-                    padding: 5px;
-                }
-            """)
-            id_edit.setText(memo)
-
-            # チェックボックス
-            checkbox = QCheckBox()
-            checkbox.setCheckState(Qt.Checked)
-            checkbox_widget = QWidget()
-            checkbox_layout = QHBoxLayout(checkbox_widget)
-            checkbox_layout.addWidget(checkbox)
-            checkbox_layout.setAlignment(Qt.AlignCenter)  # キーワード引数ではなく引数として渡す
-            checkbox_layout.setContentsMargins(0, 0, 0, 0)
-
-            self.setCellWidget(self.rowCount() - 1, 0, id_edit)
-            self.setCellWidget(self.rowCount() - 1, 1, memo_edit)
-            self.setCellWidget(self.rowCount() - 1, 2, checkbox_widget)
-
-        def keyPressEvent(self, event):
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-                current_row = self.currentRow()
-                current_column = self.currentColumn()
-
-                # チェックボックスがある列（例えば、2列目）かどうかを確認
-                if current_column == 2:
-                    checkbox_widget = self.cellWidget(current_row, current_column)
-                    if checkbox_widget:
-                        checkbox = checkbox_widget.findChild(QCheckBox)
-                        if checkbox:
-                            checkbox.setChecked(not checkbox.isChecked())
-                            return
-
-            # それ以外のキーイベントは親クラスに渡す
-            super().keyPressEvent(event)
-
-        def clear(self):
-            self.setRowCount(0)
-            for _ in range(6):
-                self.add_row(radix_type=self.radix_type)
-
-        def set_radix_type(self, radix_type):
-            self.radix_type = radix_type
+from src.component.baudrate_selector import BaudrateSelector
+from src.component.can_message_editor import CanMessageEditor
+from src.component.channel_selector import ChannelSelector
+from src.component.communication_controller import CommunicationController
+from src.component.logbox import LogBox
+from src.component.message_filter import MessageFilter
+from src.utils.can_handler import CANHandler
 
 
 class MainWindow(QMainWindow):
-    radix_change_signal = Signal(str)
+    radix_status_signal = Signal(str)
+    log_signal = Signal(str, str)
+    can_log_signal = Signal(can.Message)
+    can_connection_status_signal = Signal(bool)
 
-    def __init__(self):
+    def __init__(self, can_type, initial_radix_type="dec"):
         super().__init__()
-        self.can_type = args.can  # "socketcan" or "slcan"
-        self.radix_type = "dec"  # "hex" or "dec"
-        self.radix_type_prev = "dec"
+        self.radix_type = initial_radix_type
+        self.can_type = can_type
 
-        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
-        self.setGeometry(100, 100, 800, 300)
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.holizontal_layout = QHBoxLayout()
-        self.central_widget.setLayout(self.holizontal_layout)
-        self.layout = QVBoxLayout()
-        self.holizontal_layout.addLayout(self.layout, 800)
+        self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self.setGeometry(500, 200, 800, 300)
 
-        self.settings = QSettings("CANViewer", "CANViewer")
+        self._central_widget = QWidget()
+        self.setCentralWidget(self._central_widget)
 
-        # ポートの選択
-        port_layout = QHBoxLayout()
-
-        self.portlist_layout = QHBoxLayout()
-        self.port_label = QLabel("Port")
-        self.portlist_layout.addWidget(self.port_label)
-        self.port_combobox = QComboBox()
-        self.portlist_layout.addWidget(self.port_combobox)
-        self.refresh_ports()
-        port_layout.addLayout(self.portlist_layout)
-        port_layout.setContentsMargins(0, 0, 0, 0)  # 余白を削除
-
-        self.connect_button = QPushButton("Connect")
-        self.connect_button.clicked.connect(self.toggle_connection)
-        port_layout.addWidget(self.connect_button)
-        self.search_button = QPushButton("Search")
-        self.search_button.clicked.connect(self.refresh_ports)
-        port_layout.addWidget(self.search_button)
-        self.layout.addLayout(port_layout)
-
-        # データ入力
-        data_layout = QHBoxLayout()
-        self.id_button = QPushButton("StdID")
-        # ボタンをクリックしたら、StdIdからExtIdにトグル
-        self.id_button.setMinimumWidth(50)
-        self.id_button.clicked.connect(self.toggle_stdid_extid)
-        data_layout.addWidget(self.id_button)
-        self.stdid_edit = QLineEdit("0")
-        self.stdid_edit.setValidator(QIntValidator())
-        data_layout.addWidget(self.stdid_edit)
-        self.dataframe_label = QLabel("DataFrame")
-        self.dataframe_label.mousePressEvent = lambda event: self.toggle_radix()
-        data_layout.addWidget(self.dataframe_label)
-        self.dataframe_edits = []
-        for i in range(8):
-            edit = QLineEdit("0")
-            edit.setValidator(QIntValidator())
-            data_layout.addWidget(edit)
-
-            self.dataframe_edits.append(edit)
-        self.layout.addLayout(data_layout)
-
-        # ログの表示
-        self.log_edit = QTextEdit()
-        self.log_edit.setReadOnly(True)
-        font = QFont("Menlo", 14)
-        self.log_edit.setFont(font)  # ログエディットのフォントを設定
-        self.layout.addWidget(self.log_edit)
-
-        self.can_config_layout = QHBoxLayout()
-        # 通信速度の設定
-        bps_layout = QHBoxLayout()
-        self.bps_label = QLabel("baudrate [bps]")
-        bps_layout.addWidget(self.bps_label)
-        self.bps_edit = QComboBox()
-        self.bps_edit.setMinimumWidth(120)
-        self.bps_edit.setEditable(True)
-        self.bps_edit.addItems(["10k", "20k", "50k", "100k", "125k", "250k", "500k", "800k", "1000k"])
-        saved_bps = self.settings.value("bps", "1M")
-        self.bps_edit.setCurrentText(saved_bps)
-        self.bps_edit.setValidator(QIntValidator())
-        bps_layout.addWidget(self.bps_edit)
-        self.can_config_layout.addLayout(bps_layout)
-
-        # 送信周期・送信に関する入力
-        interval_layout = QHBoxLayout()
-        self.interval_label = QLabel("Interval [ms]")
-        interval_layout.addWidget(self.interval_label)
-        self.interval_edit = QLineEdit()
-        self.interval_edit.setValidator(QIntValidator())
-        interval_layout.addWidget(self.interval_edit)
-        self.can_config_layout.addLayout(interval_layout)
-
-        buttons_layout = QHBoxLayout()
-
-        # ログのリセット
-        self.clear_button = QPushButton("Clear")
-        self.clear_button.clicked.connect(lambda: self.log_edit.clear())
-        buttons_layout.addWidget(self.clear_button)
-
-        # 送信開始・停止
-        self.start_button = QPushButton("Start")
-        self.start_button.clicked.connect(self.toggle_interval_send)
-        buttons_layout.addWidget(self.start_button)
-
-        self.can_config_layout.addLayout(buttons_layout)
-        self.layout.addLayout(self.can_config_layout)
-
-        self.timer = None
-        self.sending = False
-        self.is_extended_id = False
-        self.is_pro_mode = False
-
-        # CAN Hanlder Setup
+        # Components
         self.can_handler = CANHandler()
-        self.can_handler.send_can_signal.connect(self.print_msg)
+        self.channel_selector = ChannelSelector(can_type=self.can_type)
+        self.can_message_editor = CanMessageEditor()
+        self.baudrate_selector = BaudrateSelector()
+        self.communication_controller = CommunicationController()
+        self.message_filter = MessageFilter()
+        self.log_box = LogBox()
 
-        self.pro_interface = ProInterface(initial_radix_type=self.radix_type)
-        self.holizontal_layout.addWidget(self.pro_interface, 300)
-        self.radix_change_signal.connect(self.pro_interface.toggle_radix)
-        self.pro_interface.setVisible(False)  # デフォルトでは非表示
-        self.can_handler.set_pro_interface(self.pro_interface)
-        # shrotcut key setting
-        # Ctrl + H change radix into Hexadecimal
-        # Ctrl + D change radix into Decimal
-        change_radix_hex_action = QAction('hex', self)
-        change_radix_hex_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)])
-        change_radix_hex_action.triggered.connect(self.change_radix_hex)
-        self.addAction(change_radix_hex_action)
+        # Layout
+        self._layout_main = QVBoxLayout()
+        self._layout_holizontal = QHBoxLayout()
+        self._layout_holizontal.addLayout(self._layout_main, 800)
+        self._central_widget.setLayout(self._layout_holizontal)
 
-        change_radix_dec_action = QAction('dec', self)
-        change_radix_dec_action.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)])
-        change_radix_dec_action.triggered.connect(self.change_radix_dec)
-        self.addAction(change_radix_dec_action)
+        self._layout_main.addWidget(self.channel_selector)
+        self._layout_main.addWidget(self.can_message_editor)
+        self._layout_main.addWidget(self.log_box)
+        self._layout_holizontal.addWidget(self.message_filter, 300)
 
-        toggle_pro_mode = QAction('ProMode', self)
-        toggle_pro_mode.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_P)])
-        toggle_pro_mode.triggered.connect(self.toggle_pro_mode)
-        self.addAction(toggle_pro_mode)
+        # Bottom Layout
+        self._layout_bottom = QHBoxLayout()
+        self._layout_bottom.addWidget(self.baudrate_selector)
+        self._layout_bottom.addWidget(self.communication_controller)
+        self._layout_main.addLayout(self._layout_bottom)
 
-    def closeEvent(self, event):
-        # bitrateの設定を保存
-        self.settings.setValue("bps", self.bps_edit.currentText())
+        # Hide Message Filter Default
+        self.message_filter.setVisible(False)
+
+        # Set Key-Board Shortcuts
+        # Ctrl + D : Change Radix to DEC
+        change_radix_to_dec_aciton = QAction("Change Radix to Dec", self)
+        change_radix_to_dec_aciton.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)]
+        )
+        change_radix_to_dec_aciton.triggered.connect(self._change_radix_to_dec)
+        self.addAction(change_radix_to_dec_aciton)
+
+        # Ctrl + H :  Change Radix to HEX
+        change_radix_to_hex_aciton = QAction("Change Radix to Hex", self)
+        change_radix_to_hex_aciton.setShortcuts(
+            [QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)]
+        )
+        change_radix_to_hex_aciton.triggered.connect(self._change_radix_to_hex)
+        self.addAction(change_radix_to_hex_aciton)
+
+        # Ctrl + P : Extend Pro Mode
+        _toggle_message_filter = QAction("Show and Hide the Message Filter", self)
+        _toggle_message_filter.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_P)])
+        _toggle_message_filter.triggered.connect(self._toggle_message_filter)
+        self.addAction(_toggle_message_filter)
+
+        # Signal Connection
+
+        # When the Radix changes, notify new radix
+        self.radix_status_signal.connect(self.can_message_editor.update_radix)
+        self.radix_status_signal.connect(self.message_filter.update_radix)
+
+        # Send log data to logbox
+        self.log_signal.connect(self.log_box.log)
+
+        # Send CAN-BUS Message to logbox
+        self.can_log_signal.connect(self.log_box.can_msg_log)
+        self.can_handler.send_can_signal.connect(self.log_box.can_msg_log)
+
+        # Notify the CAN-BUS connection status
+        self.can_connection_status_signal.connect(
+            self.channel_selector.can_connection_change_callback
+        )
+        self.can_connection_status_signal.connect(
+            self.communication_controller.can_connection_change_callback
+        )
+
+        ###############################################
+        # Send a Trigger when the 'communication_controller' order to send a message
+        self.communication_controller.send_can_msg_trigger_signal.connect(
+            self.send_can_msg
+        )
+
+        # Handle Log data from 'communication_controller'
+        self.communication_controller.log_signal.connect(self.log)
+
+        # Clear Log data from 'communication_controller'
+        self.communication_controller.log_clear_signal.connect(self.log_box.clear)
+
+        ###############################################
+        # Connect/Disconnect CAN-BUS Interface(with receiving 'channel name')
+        self.channel_selector.channel_signal.connect(
+            self._toggle_can_interface_connection
+        )
+
+        ###############################################
+        # Handle Log data from 'can_message_editor'
+        self.can_message_editor.log_signal.connect(self.log)
+
+        ###############################################
+        # Update Ignore IDs from 'message_filter'
+        self.message_filter.update_filter_id_signal.connect(
+            self.can_handler.update_ignore_ids
+        )
+
+        # load settings
+        self.settings = QSettings("CANViewer", "CANViewer")
+        saved_bps = self.settings.value("bps", "1M")
+        self.baudrate_selector.set_baudrate_text(saved_bps)
+
+    def closeEvent(self, event) -> None:
+        self.settings.setValue("bps", self.baudrate_selector.get_baudrate_text())
         event.accept()
 
-    def parse_bps(self, bps_str: str) -> int:
-        value = bps_str.upper().strip()
-        if bps_str.endswith('M') or bps_str.endswith('m'):
-            return int(int(bps_str[:-1]) * 1_000_000)
-        elif bps_str.endswith('K') or bps_str.endswith('k'):
-            return int(int(bps_str[:-1]) * 1_000)
-        else:
-            return int(bps_str)
+    @Slot()
+    def send_can_msg(self) -> None:
+        # Get CAN Message from 'can_message_editor'
+        msg: can.Message | None  # msg: can.Message | None
+        usable: bool  # message is usable or not
+        msg, usable = self.can_message_editor.get_message()
 
-    def refresh_ports(self):
-        if self.can_type == "slcan":
-            self.port_combobox.clear()
-            for n, (port, desc, devid) in enumerate(sorted(serial.tools.list_ports.comports()), 1):
-                print(f" {n}: {port:20} {desc} {devid}")
-                self.port_combobox.addItem(port)
-                if "CANable" in desc:
-                    self.port_combobox.setCurrentText(port)
-        elif self.can_type == "socketcan":
-            self.port_combobox.clear()
-            for interface in self.get_socketcan_interfaces():
-                self.port_combobox.addItem(interface)
+        if usable == False:
+            return
+        if msg is None:
+            return
 
-    def get_socketcan_interfaces(self):
-        output = os.popen('ip link show').read()
+        try:
+            self.can_handler.can_send(msg)  # Send CAN Message
+            self.can_log_signal.emit(msg)  # Log CAN Message to logbox
+        except can.CanError as e:
+            self.log("Failed to send: {}".format(e), color="red")
 
-        can_interfaces = []
-        lines = output.splitlines()
+    # This method handles the logbox. If you want to show log-data on the logbox, you can use this method.
+    @Slot(str, str)
+    def log(self, text: str, color: Optional[str] = None) -> None:
+        self.log_signal.emit(text, color)
 
-        for i, line in enumerate(lines):
-            if 'link/can' in line:
-                previous_line = lines[i - 1]
-                interface_name = previous_line.split(':')[1].strip()
-                can_interfaces.append(interface_name)
-
-        return can_interfaces
-
-    def toggle_connection(self):
+    @Slot(str)
+    def _toggle_can_interface_connection(self, channel: str) -> None:
+        # check CAN-BUS-Interface connection status
         if self.can_handler.get_connect_status() == False:
-            port = self.port_combobox.currentText()
-            try:
-                bps = self.parse_bps(self.bps_edit.currentText())
-                self.can_handler.connect_device(port, bps, self.can_type)
-                self.bps_edit.setEnabled(False)
-                self.log(f"Connected to {port} : {bps} bps", color="green")
-                self.connect_button.setText("Disconnect")
-            except Exception as e:
-                self.log("Failed to connect: {}".format(e), color="red")
+            # Get Baudrate from 'baudrate_selector'
+            bps: int = self.baudrate_selector.get_baudrate()
+            # Make a connection
+            self.can_handler.connect_device(channel, bps, self.can_type)
+
+            # set statuses
+            self.baudrate_selector.set_disable()  # Make baudrate_selector uneditable
+            # Notify the CAN-BUS connection is established to the 'channel_selector'
+            self.can_connection_status_signal.emit(True)
+            self.log(f"Connected to {channel} : {bps} bps", color="green")
         else:
             self.can_handler.disconnect_devive()
+            # set statuses
+            self.baudrate_selector.set_enable()  # Make baudrate_selector editable
+            # Notify the CAN-BUS connection is disconnected to the 'channel_selector'
+            self.can_connection_status_signal.emit(False)
             self.log("Disconnected", color="green")
-            self.connect_button.setText("Connect")
-            self.bps_edit.setEnabled(True)
 
-    def toggle_interval_send(self):
-        if self.sending:
-            self.timer.stop()
-            self.start_button.setText("Start")
-            self.interval_edit.setEnabled(True)
-            self.sending = False
-            self.log("Stopped sending data")
-        else:
-            interval_text = self.interval_edit.text()
-            if interval_text == "" or int(interval_text) == 0:
-                self.send_data()  # 一時的な送信
-            else:
-                interval = int(interval_text)
-                self.timer = QTimer()
-                self.timer.timeout.connect(self.send_data)
-                self.timer.start(interval)
-                self.start_button.setText("Stop")
-
-                self.bps_edit.setEnabled(False)
-                self.sending = True
-                self.log("Sending data at {} ms intervals".format(interval))
-
-    def toggle_stdid_extid(self):
-        self.is_extended_id = not self.is_extended_id  # モードを切り替え
-        if self.is_extended_id:
-            self.id_button.setText("ExtID")
-        else:
-            self.id_button.setText("StdID")
-
-    def change_radix_hex(self):
-        self.radix_type = "hex"
-
-        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
-
-        if self.radix_type_prev != "hex":
-            self.radix_type_prev = "hex"
-            self.radix_change_signal.emit(self.radix_type)
-            # Save the current value of the edit field
-            temp_Stdid = self.stdid_edit.text()
-            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
-
-            # Change validator
-            self.stdid_edit.setValidator(hex_validator)
-            for edit in self.dataframe_edits:
-                edit.setValidator(hex_validator)
-
-            # Convert to hexadecimal
-            if temp_Stdid:
-                try:
-                    dec_value = int(temp_Stdid)
-                    hex_value = hex(dec_value)[2:].upper()
-                    self.stdid_edit.setText(hex_value)
-                except:
-                    pass
-
-            for i, edit in enumerate(self.dataframe_edits):
-                text = temp_dataframe[i]
-                if text:
-                    try:
-                        dec_value = int(text)
-                        hex_value = hex(dec_value)[2:].upper()
-                        edit.setText(hex_value)
-                    except:
-                        pass
-
-        # Change text color to red
-        self.stdid_edit.setStyleSheet("color: blue;font-weight: bold")
-        for edit in self.dataframe_edits:
-            edit.setStyleSheet("color: blue;font-weight: bold")
-
-    def change_radix_dec(self):
-        self.radix_type = "dec"
-        self.setWindowTitle(f"CANViewer | {args.can} | {self.radix_type}")
-
-        if self.radix_type_prev != "dec":
-            self.radix_type_prev = "dec"
-            self.radix_change_signal.emit(self.radix_type)
-            # Save the current value of the edit field
-            temp_Stdid = self.stdid_edit.text()
-            temp_dataframe = [edit.text() for edit in self.dataframe_edits]  # データフレームの値を取得して保持
-
-            # Change validator
-            self.stdid_edit.setValidator(dec_validator)
-            for edit in self.dataframe_edits:
-                edit.setValidator(dec_validator)
-
-            # Convert to decimal
-            if temp_Stdid:
-                try:
-                    hex_value = int(temp_Stdid, 16)
-                    dec_value = str(hex_value)
-                    self.stdid_edit.setText(dec_value)
-                except:
-                    pass
-            for i, edit in enumerate(self.dataframe_edits):
-                text = temp_dataframe[i]
-                if text:
-                    try:
-                        hex_value = int(text, 16)
-                        dec_value = str(hex_value)
-                        edit.setText(dec_value)
-                    except:
-                        pass
-        # Change Data Frame tex color to black
-        self.stdid_edit.setStyleSheet("color: black")
-        for edit in self.dataframe_edits:
-            edit.setStyleSheet("color: black")
-
-    def toggle_radix(self):
-        if self.radix_type == "hex":
-            self.change_radix_dec()
-        elif self.radix_type == "dec":
-            self.change_radix_hex()
-
-    def send_data(self):
-        sendable = True
-        if self.can_handler.get_connect_status() == False:
-            self.log("Not connected to a port. ", color="red")
-            sendable = False
-        if self.stdid_edit.text() == "":
-            self.log("Id is empty. ", color="red")
-            sendable = False
-
-        if sendable:
-            if self.radix_type == "hex":
-                stdid = int(self.stdid_edit.text(), 16)
-            else:
-                stdid = int(self.stdid_edit.text())
-
-            # Create a data frame and exclude empty fields
-            data = []
-            for edit in self.dataframe_edits:
-                text = edit.text()
-                if text:  # If not empty
-                    if self.radix_type == "hex":
-                        text = str(text.upper())
-                        value = int(text.strip(), 16)
-                    else:
-                        value = int(text.strip())
-
-                    # Clipped to 0-255 range
-                    value = max(0, min(value, 255))
-                    data.append(value)
-
-            # Disallow empty data frames
-            if not data:
-                self.log("DataFrame is empty.", color="red")
-                return
-
-            msg = can.Message(arbitration_id=stdid, data=data, is_extended_id=self.is_extended_id, is_rx=False)
-
-            try:
-                self.can_handler.can_send(msg)
-                self.print_msg(msg)
-            except can.CanError as e:
-                self.log("Failed to send: {}".format(e), color="red")
-
-    def print_msg(self, msg: can.Message):
-        dir = ''
-        if msg is not None:
-            if msg.is_rx:
-                if msg.is_extended_id:
-                    color: str = '#FFA22B'  # orange
-                else:
-                    color: str = '#EC4954'  # red
-                dir = 'RX'
-            else:
-                if msg.is_extended_id:
-                    color: str = '#33C0FF'  # light blue
-                else:
-                    color: str = '#2C4AFF'  # blue
-                dir = 'TX'
-            if msg.is_extended_id:
-                id_str = f"{msg.arbitration_id:08x}"
-            else:
-                id_str = "_____" + f"{msg.arbitration_id:03x}"
-            ms_timestamp = datetime.now().strftime("%M:%S:%f")[:-3]
-            data_str = ' '.join(f"{byte:02x}".upper() for byte in msg.data)
-            text = f"time:{ms_timestamp}\t{dir}:{'E' if msg.is_error_frame else ' '} {'EXT' if msg.is_extended_id else 'STD'}ID:{id_str.upper()} data:{data_str}"
-            print(text)
-            self.log(text, color=color)
-
-    def log(self, message: can.Message, color: str = None):
-        if color is None:
-            self.log_edit.append(message)
-        else:
-            self.log_edit.append(f"<font color='{color}'>{message}</font>")
-
-    def toggle_pro_mode(self):
-        self.is_pro_mode = not self.is_pro_mode
-        self.pro_interface.setVisible(self.is_pro_mode)
-        if self.is_pro_mode:
-            # 定期的にテーブル内のIDを取得
-            self.resize(1100, 300)
-        else:
+    @Slot()
+    def _toggle_message_filter(self) -> None:
+        if self.message_filter.isVisible():
+            self.message_filter.setHidden(True)
             self.resize(800, 300)
+        else:
+            self.message_filter.setVisible(True)
+            self.resize(1100, 300)
+
+    @Slot()
+    def _change_radix_to_dec(self) -> None:
+        self.radix_type = "dec"
+        self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self.radix_status_signal.emit(self.radix_type)
+
+    @Slot()
+    def _change_radix_to_hex(self) -> None:
+        self.radix_type = "hex"
+        self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self.radix_status_signal.emit(self.radix_type)
 
 
-def start_gui():
+def main():
+    parser = argparse.ArgumentParser(
+        prog="CAN Send and Receive App",
+        usage="python main.py [options]",
+        epilog="end",  # ヘルプの後に表示
+        add_help=True,  # -h/–-helpオプションの追加
+    )
+
+    parser.add_argument(
+        "-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)"
+    )
+    args = parser.parse_args()
+
     print("CAN Type:", args.can)
     app = QApplication(sys.argv)
-    window = MainWindow()
+    window = MainWindow(args.can, "dec")
     window.show()
     sys.exit(app.exec())
 
 
 if __name__ == "__main__":
-    start_gui()
+    main()
