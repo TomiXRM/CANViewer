@@ -10,6 +10,7 @@ from ..utils.validator import Validator
 
 class CanMessageEditor(QWidget):
     log_signal = Signal(str, str)
+    radix_toggle_signal = Signal()
 
     def __init__(self, parent=None, initial_radix_type="dec"):
         super().__init__(parent)
@@ -39,7 +40,7 @@ class CanMessageEditor(QWidget):
 
         # Label for DataFrame
         self.dataframe_label = QLabel("DataFrame")
-        self.dataframe_label.mousePressEvent = lambda event: self.toggle_radix()
+        self.dataframe_label.mousePressEvent = lambda event: self._toggle_radix()
         self._layout.addWidget(self.dataframe_label)
 
         # DataFrame (Edit)
@@ -135,6 +136,10 @@ class CanMessageEditor(QWidget):
         )
 
         return msg, True  # msg , usable
+
+    @Slot()
+    def _toggle_radix(self) -> None:
+        self.radix_toggle_signal.emit()
 
     def _log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)

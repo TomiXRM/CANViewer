@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
         # When the Radix changes, notify new radix
         self.radix_status_signal.connect(self.can_message_editor.update_radix)
         self.radix_status_signal.connect(self.message_filter.update_radix)
+        self.can_message_editor.radix_toggle_signal.connect(self.toggle_radix)
 
         # Send log data to logbox
         self.log_signal.connect(self.log_box.log)
@@ -163,7 +164,7 @@ class MainWindow(QMainWindow):
         if self.can_handler.get_connect_status() == False:
             self.log("No connection!! Please connect to CAN device", color="red")
             return
-        
+
         # Get CAN Message from 'can_message_editor'
         msg: can.Message | None  # msg: can.Message | None
         usable: bool  # message is usable or not
@@ -215,6 +216,13 @@ class MainWindow(QMainWindow):
         else:
             self.message_filter.setVisible(True)
             self.resize(1100, 300)
+
+    @Slot()
+    def toggle_radix(self) -> None:
+        if self.radix_type == "hex":  # hex -> dec
+            self._change_radix_to_dec()
+        elif self.radix_type == "dec":  # dec -> hex
+            self._change_radix_to_hex()
 
     @Slot()
     def _change_radix_to_dec(self) -> None:
