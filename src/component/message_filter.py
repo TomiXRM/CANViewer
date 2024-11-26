@@ -159,11 +159,11 @@ class MessageFilter(QWidget):
 
             # Check-Box
             checkbox = QCheckBox()
-            checkbox.setCheckState(Qt.Checked)
+            checkbox.setCheckState(Qt.CheckState.Checked)
             checkbox_widget = QWidget()
             checkbox_layout = QHBoxLayout(checkbox_widget)
             checkbox_layout.addWidget(checkbox)
-            checkbox_layout.setAlignment(Qt.AlignCenter)
+            checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             checkbox_layout.setContentsMargins(0, 0, 0, 0)
 
             # set Widget to Table
@@ -172,7 +172,7 @@ class MessageFilter(QWidget):
             self.setCellWidget(self.rowCount() - 1, 2, checkbox_widget)
 
         def keyPressEvent(self, event: QKeyEvent) -> None:
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 current_row = self.currentRow()
                 current_column = self.currentColumn()
 

@@ -125,7 +125,6 @@ class CanMessageEditor(QWidget):
             print("DataFrame is empty.")
             self._log("DataFrame is empty.", "red")
             return None, False  # msg , usable
-            # TODO: error handling when dataframe is empty
 
         msg = can.Message(
             arbitration_id=id_value,
