@@ -11,80 +11,84 @@
 
 ![image1.png](./asset/image1.png)
 
-このアプリケーションは、SLCANやSocketCANデバイスをPCに接続し、PCから手軽にCAN通信を検証できるツールです。
-CANバス上に流れるデータの受信、定期送信や単発送信、標準IDと拡張IDの切り替え、10進数↔️16進数変換に対応しています。
-Pythonベースで書かれているためMac,Ubuntu,Windows動作します(SocketCANはUbuntuのみ対応)
+日本語の説明は[こちら](./README.jp.md)
+
+---
+
+This application is a tool that connects an SLCAN or SocketCAN device to a PC and allows you to easily verify CAN communication from your PC.
+It supports receiving data flowing on the CAN bus, periodic and one-time transmission, switching between standard and extended IDs, and decimal to ↔️ hexadecimal conversion.
+It is written in Python and runs on Mac, Ubuntu, and Windows (SocketCAN is only supported on Ubuntu).
 
 ## App Downloads
 
-[Releases](https://github.com/TomiXRM/CANViewer/releases)からビルド済みアプリケーションがダウンロードできます。Windows,Mac,Linux(バイナリ)で動作します。
+You can download a pre-built application from [Releases](https://github.com/TomiXRM/CANViewer/releases). It runs on Windows, Mac and Linux (binary).
 
-## CANViewerの機能
+## CANViewer Features
 
-- **単発送信** : `Interval`に入力せずに`Start`ボタンを押す
-- **インターバル送信** : `Interval`にインターバル送信したい間隔(ミリ秒)を入力して`Start`ボタンを押す
-- **標準/拡張フォーマットの切り替え** : `StdID`/`ExtID`のクリックでフォーマットの切り替え
-- **入力進数変更** : `DataFrame`のラベルをクリックすることで切り替え可能。また`Ctrl+H(J)`でHEX、`Ctrl+D(F)`でDECへの入力メソッド切り替えが可能
-- **フィルタ機能** : `Ctrl+P`でProモードに切り替わります。Proモードではフィルタ設定用のテーブルが表示され、無視したいIDを入力することで、指定したIDのメッセージがログから非表示になります。(現在Proモードはフィルタ機能のみ実装されています)
+- **Single-shot transmission** : press `Start` button without entering `Interval
+- **Interval transmission** : Input the interval (in milliseconds) you want to transmit interval in `Interval` and press `Start` button.
+- **Switch standard/extended format** : Click `StdID`/`ExtID` to switch format
+- **Change input decimal number** : Click `DataFrame` label to switch. Also, you can switch input method to HEX by `Ctrl+H(J)` and to DEC by `Ctrl+D(F)`.
+- **Filter function** : `Ctrl+P` switches to Pro mode; in Pro mode, a table for filter settings is displayed, and by entering an ID to be ignored, messages with the specified ID are hidden from the log. (Currently, only the filter function is implemented in Pro mode.)
 
-### インターバル送信
+### Interval transmission
 
 ![interval.gif](./asset/interval.gif)
 
-### 標準ID/拡張IDフォーマット切り替え
+### Switch between standard ID and extended ID formats
 
 ![id_format_switch.gif](./asset/id_format_switch.gif)
 
-### 入力フォーマットの10進数(DEC),16進数(HEX)切り替え
+### Switch input format between decimal(DEC) and hexadecimal(HEX)
 
 ![hex_dec_switch.gif](./asset/hex_dec_switch.gif)
 
-### 無視したいIDのフィルタ機能
+### filter function for IDs you want to ignore
 
 ![filter.gi](asset/filter.gif)
 
-## Development Prerequisites / 開発に必要なもの
+## Development Prerequisites / What you need for development
 
-- CANデバイスが用意されていること(SLCANであれば[CANable2.0](https://canable.io)や[MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html)など)
-- Pythonがインストールされていること
-  - [Poetry](https://python-poetry.org)がインストールされていない場合は、事前にインストールする必要があります。(ライブラリのバージョン管理で使います)
-  - Poetryを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
-- `make`が入っていると便利です
+- CAN device must be available (for SLCAN, [CANable2.0](https://canable.io) or [MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html))
+- Python must be installed.
+  - If [Poetry](https://python-poetry.org) is not installed, it must be installed beforehand. (It is used for version control of libraries)
+  - Resolving dependencies using Poetry will automatically install the packages needed to run your Python application.
+- It is useful to have `make` included!
 
-## ビルド方法
+## How to build
 
-1. ターミナルを開きます。
-2. Pythonアプリケーションが格納されているディレクトリに移動します。
+1. Open in terminal
+2. Go to the directory where the CANViewer Python application is stored.
 
     ``` bash
-    cd CANViewerのディレクトリ
+    cd CANViewer-directory
     ```
 
-3. Poetryを使用して依存関係を解決し、仮想環境を作成します。
+3. Use Poetry to resolve dependencies and create virtual environments.
 
     ``` bash
     poetry install
     ```
 
-   または
+   or
 
    ``` bash
    make install
    ```
 
-4. アプリケーションを起動します。
+4. Launch the application with command.
 
     ``` bash
     poetry run python main.py
     ```
 
-    または
+    or
 
     ``` bash
     make run
     ```
 
-5. SocketCANで動作させる場合のオプション
+5. Options for operating with SocketCAN
 
    ``` bash
    poetry run python main.py -c socketcan
@@ -92,4 +96,4 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 
 ## ライセンス
 
-このプロジェクトはLGPLライセンスです。 詳しくは[LICENSE](LICENSE)を確認ください
+This project is LGPL licensed. Please check [LICENSE](LICENSE) for more information.
