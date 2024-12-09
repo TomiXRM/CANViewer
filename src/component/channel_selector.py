@@ -61,7 +61,7 @@ class ChannelSelector(QWidget):
                 print(f" {n}: {port:20} {desc} {devid}")
                 self._channel_combobox.addItem(port)
                 # set CANable device as default
-                if "CANable" in desc:
+                if "CAN" in desc: 
                     self._channel_combobox.setCurrentText(port)
 
         elif self._can_type == "socketcan":

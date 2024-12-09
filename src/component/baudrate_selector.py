@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 
 class BaudrateSelector(QWidget):
-    def __init__(self, parent=None, default_bps: str = "1M"):
+    def __init__(self, parent=None, default_bps: str = "1000k"):
         super().__init__(parent)
 
         self._layout = QHBoxLayout()
