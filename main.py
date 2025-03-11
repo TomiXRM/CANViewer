@@ -21,6 +21,9 @@ from src.component.logbox import LogBox
 from src.component.message_filter import MessageFilter
 from src.utils.can_handler import CANHandler
 
+from returns.result import Success, Failure
+from returns.pipeline import is_successful
+
 
 class MainWindow(QMainWindow):
     radix_status_signal = Signal(str)
@@ -193,13 +196,17 @@ class MainWindow(QMainWindow):
             # Get Baudrate from 'baudrate_selector'
             bps: int = self.baudrate_selector.get_baudrate()
             # Make a connection
-            self.can_handler.connect_device(channel, bps, self.can_type)
+            rslt = self.can_handler.connect_device(channel, bps, self.can_type)
 
-            # set statuses
-            self.baudrate_selector.set_disable()  # Make baudrate_selector uneditable
-            # Notify the CAN-BUS connection is established to the 'channel_selector'
-            self.can_connection_status_signal.emit(True)
-            self.log(f"Connected to {channel} : {bps} bps", color="green")
+            if is_successful(rslt):
+                # set statuses
+                self.baudrate_selector.set_disable()  # Make baudrate_selector uneditable
+                # Notify the CAN-BUS connection is established to the 'channel_selector'
+                self.can_connection_status_signal.emit(True)
+                self.log(f"Connected to {channel} : {bps} bps", color="green")
+            else:
+                self.log(f"{rslt.failure()}", color="red")
+            
         else:
             self.can_handler.disconnect_devive()
             # set statuses
