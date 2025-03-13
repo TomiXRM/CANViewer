@@ -12,7 +12,7 @@ pyserial = "^3.5"
 python-can = "4.5.0"
 argparse = "^1.4.0"
 pyside6 = {version = "^6.8.2.1", python = ">=3.10,<3.14"}
-nuitka = "^2.6.8"
+nuitka = "^2.4.11"
 black = "^25.1.0"
 mypy = "^1.15.0"
 returns = "^0.24.0"
