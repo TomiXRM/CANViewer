@@ -51,8 +51,8 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 
 - CAN device must be available (for SLCAN, [CANable2.0](https://canable.io) or [MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html))
 - Python must be installed.
-  - If [Poetry](https://python-poetry.org) is not installed, it must be installed beforehand. (It is used for version control of libraries)
-  - Resolving dependencies using Poetry will automatically install the packages needed to run your Python application.
+  - If [uv](https://docs.astral.sh/uv/) is not installed, it must be installed beforehand (for example, with `pip install uv`). It is used for dependency management.
+  - Resolving dependencies using uv will automatically install the packages needed to run your Python application.
 - It is useful to have `make` included!
 
 ## How to build
@@ -64,10 +64,10 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
     cd CANViewer-directory
     ```
 
-3. Use Poetry to resolve dependencies and create virtual environments.
+3. Use uv to resolve dependencies and create virtual environments.
 
     ``` bash
-    poetry install
+    uv sync
     ```
 
    or
@@ -79,8 +79,8 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 4. Launch the application with command.
 
     ``` bash
-    poetry run python main.py
-    ```
+   uv run python main.py
+   ```
 
     or
 
@@ -91,8 +91,13 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 5. Options for operating with SocketCAN
 
    ``` bash
-   poetry run python main.py -c socketcan
+   uv run python main.py -c socketcan
    ```
+
+## Checking GitHub Actions builds
+
+The GitHub Actions workflow builds distributables for Windows, macOS, and Ubuntu.
+You can manually trigger the workflow from the **Actions** tab (look for "Build and Release") to confirm that the build steps are working without creating a tag.
 
 ## LICENSE
 

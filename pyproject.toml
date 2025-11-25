@@ -1,23 +1,33 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
 name = "canviewer"
 version = "0.0.1"
 description = "CAN Sender GUI with slcand"
-authors = ["tomixrm <chocolate0785lego@icloud.com>"]
-license = "LGPL-2.1"
+authors = [{ name = "tomixrm", email = "chocolate0785lego@icloud.com" }]
 readme = "README.md"
+license = { text = "LGPL-2.1" }
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "pyserial>=3.5,<4.0",
+    "python-can==4.5.0",
+    "pyside6>=6.8.2.1,<6.9",
+    "nuitka>=2.4.11,<3.0",
+    "returns>=0.24.0,<0.25",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pyserial = "^3.5"
-python-can = "4.5.0"
-argparse = "^1.4.0"
-pyside6 = {version = "^6.8.2.1", python = ">=3.10,<3.14"}
-nuitka = "^2.4.11"
-black = "^25.1.0"
-mypy = "^1.15.0"
-returns = "^0.24.0"
+[tool.uv]
 
+[dependency-groups]
+dev = [
+    "black>=25.1.0,<26.0",
+    "mypy>=1.15.0,<2.0",
+]
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "main.py", "README.md", "README.jp.md", "asset/**/*"]
