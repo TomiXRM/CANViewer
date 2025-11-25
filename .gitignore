@@ -160,6 +160,3 @@ cython_debug/
 #.idea/
 
 
-
-# poetry
-poetry.lock

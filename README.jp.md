@@ -47,8 +47,8 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 
 - CANデバイスが用意されていること(SLCANであれば[CANable2.0](https://canable.io)や[MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html)など)
 - Pythonがインストールされていること
-  - [Poetry](https://python-poetry.org)がインストールされていない場合は、事前にインストールする必要があります。(ライブラリのバージョン管理で使います)
-  - Poetryを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
+  - [uv](https://docs.astral.sh/uv/)がインストールされていない場合は、事前にインストールする必要があります。(例えば `pip install uv` )。ライブラリの依存関係管理に使用します。
+  - uvを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
 - `make`が入っていると便利です
 
 ## ビルド方法
@@ -60,10 +60,10 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
     cd CANViewerのディレクトリ
     ```
 
-3. Poetryを使用して依存関係を解決し、仮想環境を作成します。
+3. uvを使用して依存関係を解決し、仮想環境を作成します。
 
     ``` bash
-    poetry install
+    uv sync
     ```
 
    または
@@ -75,7 +75,7 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 4. アプリケーションを起動します。
 
     ``` bash
-    poetry run python main.py
+    uv run python main.py
     ```
 
     または
@@ -87,8 +87,13 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 5. SocketCANで動作させる場合のオプション
 
    ``` bash
-   poetry run python main.py -c socketcan
+   uv run python main.py -c socketcan
    ```
+
+## GitHub Actionsビルドの確認
+
+GitHub ActionsのワークフローはWindows、macOS、Ubuntu向けに配布物をビルドします。
+タグを切らなくても、Actionsタブの「Build and Release」から手動トリガーしてビルド手順を確認できます。
 
 ## ライセンス
 

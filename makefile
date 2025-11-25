@@ -1,17 +1,19 @@
-.PHONY: run run-socketcan clean install format
+.PHONY: run run-socketcan clean install format analyze
+
 run:
-	poetry run python main.py
+uv run python main.py
 
 run-socketcan:
-	poetry run python main.py -c socketcan
+uv run python main.py -c socketcan
+
 clean:
-	rm -rf __pycache__ .mypy_cache poetry.lock
+rm -rf __pycache__ .mypy_cache .venv
 
 install:
-	poetry install
+uv sync
 
 format:
-	poetry run black .
+uv run black .
 
 analyze:
-	poetry run mypy .
+uv run mypy .
