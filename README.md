@@ -1,7 +1,7 @@
 <div align="center">
     <img src="/asset/icon.png" alt="CANVIEWER LOGO" width="120" />
     <h1>CANViewer</h1>
-    <p>cross-platform CAN bus monitor, built on Python.</p>
+    <p>Cross-platform CAN bus monitor built with Python.</p>
 
   [![License](https://img.shields.io/github/license/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/blob/main/LICENSE)
   [![GitHub stars](https://img.shields.io/github/stars/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/stargazers)
@@ -25,9 +25,9 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 
 ## CANViewer Features
 
-- **Single-shot transmission** : press `Start` button without entering `Interval
-- **Interval transmission** : Input the interval (in milliseconds) you want to transmit interval in `Interval` and press `Start` button.
-- **Switch standard/extended format** : Click `StdID`/`ExtID` to switch format
+- **Single-shot transmission** : press `Start` button without entering `Interval`.
+- **Interval transmission** : Enter the interval (milliseconds) in `Interval` and press `Start` button.
+- **Switch standard/extended format** : Click `StdID`/`ExtID` to switch format.
 - **Change input decimal number** : Click `DataFrame` label to switch. Also, you can switch input method to HEX by `Ctrl+H(J)` and to DEC by `Ctrl+D(F)`.
 - **Filter function** : `Ctrl+P` switches to Pro mode; in Pro mode, a table for filter settings is displayed, and by entering an ID to be ignored, messages with the specified ID are hidden from the log. (Currently, only the filter function is implemented in Pro mode.)
 
@@ -43,9 +43,9 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 
 ![hex_dec_switch.gif](./asset/hex_dec_switch.gif)
 
-### filter function for IDs you want to ignore
+### Filter function for IDs you want to ignore
 
-![filter.gi](asset/filter.gif)
+![filter.gif](./asset/filter.gif)
 
 ## Development Prerequisites / What you need for development
 
@@ -53,7 +53,7 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 - Python must be installed.
   - If [Poetry](https://python-poetry.org) is not installed, it must be installed beforehand. (It is used for version control of libraries)
   - Resolving dependencies using Poetry will automatically install the packages needed to run your Python application.
-- It is useful to have `make` included!
+- It is useful to have `make` installed!
 
 ## How to build
 
