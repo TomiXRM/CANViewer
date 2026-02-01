@@ -1,6 +1,7 @@
 import can
 from PySide6.QtCore import QThread, Signal, Slot
-from returns.result import Result,Success,Failure 
+from returns.result import Result, Success, Failure
+
 
 class CANHandler(QThread):
     send_can_signal = Signal(can.Message)
@@ -11,14 +12,19 @@ class CANHandler(QThread):
         self.can_bus = None
         self.can_notifier = None
 
-    def connect_device(self, channel: str, bps: int, interface: str) -> Result[bool,Exception]:
+    def connect_device(
+        self, channel: str, bps: int, interface: str, can_fd: bool
+    ) -> Result[bool, Exception]:
         try:
-            self.can_bus = can.interface.Bus(
+            bus_kwargs = dict(
                 channel=channel,
                 bitrate=bps,
                 receive_own_messages=False,
                 interface=interface,
             )
+            if can_fd and interface == "socketcan":
+                bus_kwargs["fd"] = True
+            self.can_bus = can.interface.Bus(**bus_kwargs)
             self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
             return Success(True)
         except Exception as e:
