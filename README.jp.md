@@ -1,7 +1,7 @@
 <div align="center">
     <img src="/asset/icon.png" alt="CANVIEWER LOGO" width="120" />
     <h1>CANViewer</h1>
-    <p>cross-platform CAN bus monitor, built on Python.</p>
+    <p>Cross-platform CAN bus monitor built with Python.</p>
 
   [![License](https://img.shields.io/github/license/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/blob/main/LICENSE)
   [![GitHub stars](https://img.shields.io/github/stars/TomiXRM/CANViewer)](https://github.com/TomiXRM/CANViewer/stargazers)
@@ -13,7 +13,7 @@
 
 このアプリケーションは、SLCANやSocketCANデバイスをPCに接続し、PCから手軽にCAN通信を検証できるツールです。
 CANバス上に流れるデータの受信、定期送信や単発送信、標準IDと拡張IDの切り替え、10進数↔️16進数変換に対応しています。
-Pythonベースで書かれているためMac,Ubuntu,Windows動作します(SocketCANはUbuntuのみ対応)
+Pythonベースで書かれているため、Mac、Ubuntu、Windowsで動作します（SocketCANはUbuntuのみ対応）。
 
 ## App Downloads
 
@@ -22,9 +22,9 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 ## CANViewerの機能
 
 - **単発送信** : `Interval`に入力せずに`Start`ボタンを押す
-- **インターバル送信** : `Interval`にインターバル送信したい間隔(ミリ秒)を入力して`Start`ボタンを押す
+- **インターバル送信** : `Interval`にインターバル送信したい間隔（ミリ秒）を入力して`Start`ボタンを押す
 - **標準/拡張フォーマットの切り替え** : `StdID`/`ExtID`のクリックでフォーマットの切り替え
-- **入力進数変更** : `DataFrame`のラベルをクリックすることで切り替え可能。また`Ctrl+H(J)`でHEX、`Ctrl+D(F)`でDECへの入力メソッド切り替えが可能
+- **入力進数の変更** : `DataFrame`のラベルをクリックすることで切り替え可能。また`Ctrl+H(J)`でHEX、`Ctrl+D(F)`でDECへの入力方法の切り替えが可能
 - **フィルタ機能** : `Ctrl+P`でProモードに切り替わります。Proモードではフィルタ設定用のテーブルが表示され、無視したいIDを入力することで、指定したIDのメッセージがログから非表示になります。(現在Proモードはフィルタ機能のみ実装されています)
 
 ### インターバル送信
@@ -41,7 +41,7 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 
 ### 無視したいIDのフィルタ機能
 
-![filter.gi](asset/filter.gif)
+![filter.gif](./asset/filter.gif)
 
 ## Development Prerequisites / 開発に必要なもの
 
@@ -49,7 +49,7 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 - Pythonがインストールされていること
   - [Poetry](https://python-poetry.org)がインストールされていない場合は、事前にインストールする必要があります。(ライブラリのバージョン管理で使います)
   - Poetryを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
-- `make`が入っていると便利です
+- `make`がインストールされていると便利です
 
 ## ビルド方法
 
@@ -92,4 +92,4 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 
 ## ライセンス
 
-このプロジェクトはLGPLライセンスです。 詳しくは[LICENSE](LICENSE)を確認ください
+このプロジェクトはLGPLライセンスです。詳しくは[LICENSE](LICENSE)を確認ください
