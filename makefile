@@ -1,17 +1,30 @@
-.PHONY: run run-socketcan clean install format
+.PHONY: run run-gs-usb build build-dmg build-appimage install-linux-desktop clean install format analyze
 run:
-	poetry run python main.py
+	uv run python main.py
 
-run-socketcan:
-	poetry run python main.py -c socketcan
+run-gs-usb:
+	uv run python main.py -c gs_usb
+
+build:
+	uv run --group build python scripts/build_nuitka.py --clean
+
+build-dmg:
+	uv run --group build python scripts/build_nuitka.py --clean --dmg
+
+build-appimage:
+	uv run --group build python scripts/build_nuitka.py --clean --appimage
+
+install-linux-desktop:
+	scripts/install_linux_desktop.sh
+
 clean:
-	rm -rf __pycache__ .mypy_cache poetry.lock
+	rm -rf __pycache__ .mypy_cache .pytest_cache dist build .venv
 
 install:
-	poetry install
+	uv sync --all-groups
 
 format:
-	poetry run black .
+	uv run --group dev black .
 
 analyze:
-	poetry run mypy .
+	uv run --group dev mypy .

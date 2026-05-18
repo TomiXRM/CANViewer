@@ -1,6 +1,7 @@
 import can
 from PySide6.QtCore import QThread, Signal, Slot
-from returns.result import Result,Success,Failure 
+from returns.result import Result, Success, Failure
+
 
 class CANHandler(QThread):
     send_can_signal = Signal(can.Message)
@@ -11,10 +12,16 @@ class CANHandler(QThread):
         self.can_bus = None
         self.can_notifier = None
 
-    def connect_device(self, channel: str, bps: int, interface: str) -> Result[bool,Exception]:
+    def connect_device(
+        self, channel: str, bps: int, interface: str
+    ) -> Result[bool, Exception]:
+        bus_channel: str | int = channel
+        if interface == "gs_usb":
+            bus_channel = int(channel)
+
         try:
             self.can_bus = can.interface.Bus(
-                channel=channel,
+                channel=bus_channel,
                 bitrate=bps,
                 receive_own_messages=False,
                 interface=interface,

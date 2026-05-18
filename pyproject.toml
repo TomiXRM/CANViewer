@@ -1,23 +1,30 @@
-[tool.poetry]
+[project]
 name = "canviewer"
 version = "0.0.1"
 description = "CAN Sender GUI with slcand"
-authors = ["tomixrm <chocolate0785lego@icloud.com>"]
+authors = [
+    { name = "tomixrm", email = "chocolate0785lego@icloud.com" },
+]
 license = "LGPL-2.1"
 readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "argparse>=1.4.0,<2.0.0",
+    "pyserial>=3.5,<4.0",
+    "python-can[gs-usb]==4.5.0",
+    "pyside6>=6.8.2.1,<7.0.0",
+    "returns>=0.24.0,<0.25.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pyserial = "^3.5"
-python-can = "4.5.0"
-argparse = "^1.4.0"
-pyside6 = {version = "^6.8.2.1", python = ">=3.10,<3.14"}
-nuitka = "^2.4.11"
-black = "^25.1.0"
-mypy = "^1.15.0"
-returns = "^0.24.0"
+[dependency-groups]
+build = [
+    "nuitka>=2.4.11,<3.0.0",
+]
+dev = [
+    "black>=25.1.0,<26.0.0",
+    "mypy>=1.15.0,<2.0.0",
+    "types-pyserial>=3.5.0,<4.0.0",
+]
 
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv]
+package = false

@@ -15,9 +15,9 @@
 
 ---
 
-This application is a tool that connects an SLCAN or SocketCAN device to a PC and allows you to easily verify CAN communication from your PC.
+This application is a tool that connects an SLCAN or gs_usb-compatible CAN device to a PC and allows you to easily verify CAN communication from your PC.
 It supports receiving data flowing on the CAN bus, periodic and one-time transmission, switching between standard and extended IDs, and decimal to ↔️ hexadecimal conversion.
-It is written in Python and runs on Mac, Ubuntu, and Windows (SocketCAN is only supported on Ubuntu).
+It is written in Python and runs on Mac, Ubuntu, and Windows.
 
 ## App Downloads
 
@@ -49,10 +49,10 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 
 ## Development Prerequisites / What you need for development
 
-- CAN device must be available (for SLCAN, [CANable2.0](https://canable.io) or [MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html))
+- CAN device must be available (for SLCAN or gs_usb, [CANable2.0](https://canable.io) or [MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html))
 - Python must be installed.
-  - If [Poetry](https://python-poetry.org) is not installed, it must be installed beforehand. (It is used for version control of libraries)
-  - Resolving dependencies using Poetry will automatically install the packages needed to run your Python application.
+  - If [uv](https://docs.astral.sh/uv/) is not installed, it must be installed beforehand. On macOS, you can install it with `brew install uv`.
+  - Resolving dependencies using uv will automatically install the packages needed to run your Python application.
 - It is useful to have `make` included!
 
 ## How to build
@@ -64,10 +64,10 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
     cd CANViewer-directory
     ```
 
-3. Use Poetry to resolve dependencies and create virtual environments.
+3. Use uv to resolve dependencies and create virtual environments.
 
     ``` bash
-    poetry install
+    uv sync --all-groups
     ```
 
    or
@@ -79,7 +79,7 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
 4. Launch the application with command.
 
     ``` bash
-    poetry run python main.py
+    uv run python main.py
     ```
 
     or
@@ -88,11 +88,37 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
     make run
     ```
 
-5. Options for operating with SocketCAN
+5. Options for operating with gs_usb
 
    ``` bash
-   poetry run python main.py -c socketcan
+   uv run python main.py -c gs_usb
    ```
+
+## Build the application bundle
+
+On macOS, this creates `dist/CANViewer.app`.
+
+``` bash
+make build
+```
+
+To create `dist/CANViewer.dmg` as well:
+
+``` bash
+make build-dmg
+```
+
+On Linux, this creates `dist/CANViewer-<arch>.AppImage`.
+
+``` bash
+make build-appimage
+```
+
+To install the AppImage into `~/.local/bin` and register a desktop entry:
+
+``` bash
+make install-linux-desktop
+```
 
 ## LICENSE
 

@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
                 self.log(f"Connected to {channel} : {bps} bps", color="green")
             else:
                 self.log(f"{rslt.failure()}", color="red")
-            
+
         else:
             self.can_handler.disconnect_devive()
             # set statuses
@@ -253,7 +253,7 @@ def main():
     )
 
     parser.add_argument(
-        "-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)"
+        "-c", "--can", type=str, default="slcan", help="CAN type (gs_usb, slcan)"
     )
     args = parser.parse_args()
 

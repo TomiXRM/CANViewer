@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: '3.12'
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -21,32 +23,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Poetry
-        run: pip install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: poetry install --no-root --no-ansi --no-interaction
-
-      - name: Install Nuitka
-        run: poetry run pip install nuitka
+        run: uv sync --locked --all-groups
 
       - name: Build with Nuitka
-        run: |
-          mkdir -p dist
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --follow-imports --windows-icon-from-ico=asset/icon.ico --enable-plugin=pyside6 --output-dir=dist  --include-module=can.interfaces.slcan --assume-yes-for-downloads --windows-disable-console --remove-output
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            poetry run nuitka main.py --output-filename=CANViewer --macos-create-app-bundle --standalone --follow-imports --macos-app-icon=asset/icon.icns --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --macos-app-name=CANViewer --macos-signed-app-name=CANViewer --macos-signed-app-name=com.tomixrm.CANViewer --remove-output
-
-            mv dist/main.app dist/CANViewer.app
-
-            hdiutil create -volname "CANViewer" -srcfolder dist/CANViewer.app -ov -format UDZO dist/CANViewer.dmg
-
-            rm -rf dist/CANViewer.app
-          else
-            poetry run nuitka main.py --output-filename=CANViewer --onefile --standalone --follow-imports --linux-icon=asset/icon.png --enable-plugin=pyside6 --output-dir=dist --include-module=can.interfaces.slcan --assume-yes-for-downloads --remove-output
-          fi
-        shell: bash
+        run: uv run --locked --group build python scripts/build_nuitka.py --clean --dmg --appimage
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -84,21 +70,12 @@ jobs:
           name: macos-latest
           path: macos
 
-      - name: Compress Ubuntu Artifacts
-        run: zip -r CANViewer_ubuntu_x86_64.zip ubuntu
-  
-      - name: Compress Windows Artifacts
-        run: zip -r CANViewer_windows_x86_64.zip windows
-
-      - name: Compress macOS Artifacts
-        run: zip -r CANViewer_macos_arm64.zip macos
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            CANViewer_ubuntu_x86_64.zip
-            CANViewer_windows_x86_64.zip
-            CANViewer_macos_arm64.zip
+            ubuntu/CANViewer-*.AppImage
+            windows/CANViewer.exe
+            macos/CANViewer.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

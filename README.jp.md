@@ -11,9 +11,9 @@
 
 ![image1.png](./asset/image1.png)
 
-このアプリケーションは、SLCANやSocketCANデバイスをPCに接続し、PCから手軽にCAN通信を検証できるツールです。
+このアプリケーションは、SLCANやgs_usb対応CANデバイスをPCに接続し、PCから手軽にCAN通信を検証できるツールです。
 CANバス上に流れるデータの受信、定期送信や単発送信、標準IDと拡張IDの切り替え、10進数↔️16進数変換に対応しています。
-Pythonベースで書かれているためMac,Ubuntu,Windows動作します(SocketCANはUbuntuのみ対応)
+Pythonベースで書かれているためMac,Ubuntu,Windows動作します。
 
 ## App Downloads
 
@@ -45,10 +45,10 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 
 ## Development Prerequisites / 開発に必要なもの
 
-- CANデバイスが用意されていること(SLCANであれば[CANable2.0](https://canable.io)や[MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html)など)
+- CANデバイスが用意されていること(SLCANまたはgs_usbであれば[CANable2.0](https://canable.io)や[MKS CANable](https://ja.aliexpress.com/item/1005003746105255.html)など)
 - Pythonがインストールされていること
-  - [Poetry](https://python-poetry.org)がインストールされていない場合は、事前にインストールする必要があります。(ライブラリのバージョン管理で使います)
-  - Poetryを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
+  - [uv](https://docs.astral.sh/uv/)がインストールされていない場合は、事前にインストールする必要があります。macOSでは`brew install uv`でインストールできます。
+  - uvを使用して依存関係を解決することで、Pythonアプリケーションの実行に必要なパッケージが自動的にインストールされます。
 - `make`が入っていると便利です
 
 ## ビルド方法
@@ -60,10 +60,10 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
     cd CANViewerのディレクトリ
     ```
 
-3. Poetryを使用して依存関係を解決し、仮想環境を作成します。
+3. uvを使用して依存関係を解決し、仮想環境を作成します。
 
     ``` bash
-    poetry install
+    uv sync --all-groups
     ```
 
    または
@@ -75,7 +75,7 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
 4. アプリケーションを起動します。
 
     ``` bash
-    poetry run python main.py
+    uv run python main.py
     ```
 
     または
@@ -84,11 +84,37 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します(Sock
     make run
     ```
 
-5. SocketCANで動作させる場合のオプション
+5. gs_usbで動作させる場合のオプション
 
    ``` bash
-   poetry run python main.py -c socketcan
+   uv run python main.py -c gs_usb
    ```
+
+## アプリケーションバンドルのビルド
+
+macOSでは `dist/CANViewer.app` が生成されます。
+
+``` bash
+make build
+```
+
+`dist/CANViewer.dmg` も生成する場合:
+
+``` bash
+make build-dmg
+```
+
+Linuxでは `dist/CANViewer-<arch>.AppImage` が生成されます。
+
+``` bash
+make build-appimage
+```
+
+AppImageを `~/.local/bin` に配置し、desktop entryに登録する場合:
+
+``` bash
+make install-linux-desktop
+```
 
 ## ライセンス
 
