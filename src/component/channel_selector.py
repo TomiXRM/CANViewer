@@ -1,23 +1,41 @@
-import os
+from typing import Any
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
 from serial.tools.list_ports import comports
 
+GsUsb: Any = None
+try:
+    from gs_usb.gs_usb import GsUsb as _GsUsb  # type: ignore[import-untyped]
+except ImportError:
+    pass
+else:
+    GsUsb = _GsUsb
+
 
 class ChannelSelector(QWidget):
-
-    channel_signal = Signal(str)
+    channel_signal = Signal(str, str)
 
     def __init__(self, parent=None, can_type="slcan"):
         super().__init__(parent)
 
-        self._can_type = can_type  # "socketcan" or "slcan"
+        self._can_type = can_type  # "slcan" or "gs_usb"
 
         # main layout
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
+
+        # CAN interface selector
+        self._can_type_combobox = QComboBox()
+        self._can_type_combobox.addItem("SLCAN", "slcan")
+        self._can_type_combobox.addItem("gs_usb", "gs_usb")
+        self._can_type_combobox.setFixedWidth(90)
+        current_index = self._can_type_combobox.findData(self._can_type)
+        if current_index >= 0:
+            self._can_type_combobox.setCurrentIndex(current_index)
+        self._can_type_combobox.currentIndexChanged.connect(self._on_can_type_changed)
+        self._layout.addWidget(self._can_type_combobox)
 
         # Channel selection list layout
         self._list_layout = QHBoxLayout()
@@ -48,43 +66,69 @@ class ChannelSelector(QWidget):
 
     def connection_complete(self) -> None:
         self._connect_button.setText("Disconnect")
+        self._can_type_combobox.setEnabled(False)
 
     def disconnection_complete(self) -> None:
         self._connect_button.setText("Connect")
+        self._can_type_combobox.setEnabled(True)
+        self._update_connect_button_enabled()
 
     @Slot()
     def _refresh(self) -> None:
         self._channel_combobox.clear()
         if self._can_type == "slcan":
             # List available ports
-            for n, (port, desc, devid) in enumerate(sorted(comports()), 1):
+            for n, port_info in enumerate(sorted(comports()), 1):
+                port = port_info.device
+                desc = port_info.description
+                devid = port_info.hwid
                 print(f" {n}: {port:20} {desc} {devid}")
                 self._channel_combobox.addItem(port)
                 # set CANable device as default
-                if "CAN" in desc: 
+                if "CAN" in desc:
                     self._channel_combobox.setCurrentText(port)
 
-        elif self._can_type == "socketcan":
-            # List available interfaces
-            output: str = os.popen(
-                "ip link show"
-            ).read()  # Get the list of network interfaces(SocketCAN)
-            can_interfaces = []
-            lines = output.splitlines()
+        elif self._can_type == "gs_usb":
+            if GsUsb is None:
+                print("gs_usb is not installed")
+                return
 
-            # Extract the interface name from the output into the list
-            for n, line in enumerate(lines):
-                if "link/can" in line:
-                    previous_line = lines[n - 1]
-                    interface_name = previous_line.split(":")[1].strip()
-                    can_interfaces.append(interface_name)
-                    print(f" {n}: {interface_name}")
-
-            for interface in can_interfaces:
-                self._channel_combobox.addItem(interface)
+            # List available gs_usb devices by index.
+            for index, device in enumerate(GsUsb.scan()):
+                product = getattr(device.usb_device, "product", None)
+                manufacturer = getattr(device.usb_device, "manufacturer", None)
+                description = " ".join(
+                    value for value in [manufacturer, product] if value
+                )
+                label = f"{index}: {description}" if description else str(index)
+                print(f" {index}: {label}")
+                self._channel_combobox.addItem(label, index)
         else:
             print("Invalid CAN type")
 
+        self._update_connect_button_enabled()
+
+    def _update_connect_button_enabled(self) -> None:
+        if self._connect_button.text() == "Disconnect":
+            self._connect_button.setEnabled(True)
+            return
+
+        self._connect_button.setEnabled(self._channel_combobox.count() > 0)
+
+    @Slot()
+    def _on_can_type_changed(self) -> None:
+        can_type = self._can_type_combobox.currentData()
+        if not isinstance(can_type, str):
+            return
+
+        self._can_type = can_type
+        self._refresh()
+
     @Slot()
     def _on_connect_button_clicked(self) -> None:
-        self.channel_signal.emit(self._channel_combobox.currentText())
+        channel = self._channel_combobox.currentData()
+        if channel is None:
+            channel = self._channel_combobox.currentText()
+        if str(channel) == "":
+            return
+        self.channel_signal.emit(str(channel), self._can_type)

@@ -35,7 +35,7 @@ class BaudrateSelector(QWidget):
         self._bps_combobox.setDisabled(True)
 
     def _parse_bps(self, bps_str: str) -> int:
-        value = bps_str.upper().strip()
+        bps_str = bps_str.strip()
         if bps_str.endswith("M") or bps_str.endswith("m"):
             return int(int(bps_str[:-1]) * 1_000_000)
         elif bps_str.endswith("K") or bps_str.endswith("k"):

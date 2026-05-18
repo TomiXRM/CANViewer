@@ -4,7 +4,7 @@ from typing import Optional
 
 import can
 from PySide6.QtCore import QSettings, Signal, Slot
-from PySide6.QtGui import QAction, QKeySequence, Qt
+from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -21,7 +21,6 @@ from src.component.logbox import LogBox
 from src.component.message_filter import MessageFilter
 from src.utils.can_handler import CANHandler
 
-from returns.result import Success, Failure
 from returns.pipeline import is_successful
 
 
@@ -75,7 +74,10 @@ class MainWindow(QMainWindow):
         # Ctrl + D : Change Radix to DEC
         change_radix_to_dec_aciton = QAction("Change Radix to Dec", self)
         change_radix_to_dec_aciton.setShortcuts(
-            [QKeySequence(Qt.CTRL | Qt.Key_D), QKeySequence(Qt.CTRL | Qt.Key_F)]
+            [
+                QKeySequence("Ctrl+D"),
+                QKeySequence("Ctrl+F"),
+            ]
         )
         change_radix_to_dec_aciton.triggered.connect(self._change_radix_to_dec)
         self.addAction(change_radix_to_dec_aciton)
@@ -83,22 +85,23 @@ class MainWindow(QMainWindow):
         # Ctrl + H :  Change Radix to HEX
         change_radix_to_hex_aciton = QAction("Change Radix to Hex", self)
         change_radix_to_hex_aciton.setShortcuts(
-            [QKeySequence(Qt.CTRL | Qt.Key_H), QKeySequence(Qt.CTRL | Qt.Key_J)]
+            [
+                QKeySequence("Ctrl+H"),
+                QKeySequence("Ctrl+J"),
+            ]
         )
         change_radix_to_hex_aciton.triggered.connect(self._change_radix_to_hex)
         self.addAction(change_radix_to_hex_aciton)
 
         # Ctrl + P : Extend Pro Mode
         _toggle_message_filter = QAction("Show and Hide the Message Filter", self)
-        _toggle_message_filter.setShortcuts([QKeySequence(Qt.CTRL | Qt.Key_P)])
+        _toggle_message_filter.setShortcuts([QKeySequence("Ctrl+P")])
         _toggle_message_filter.triggered.connect(self._toggle_message_filter)
         self.addAction(_toggle_message_filter)
 
         # Ctrl + Enter : Send CAN Message
         send_can_msg_with_keybind_action = QAction("Send CAN Message", self)
-        send_can_msg_with_keybind_action.setShortcuts(
-            [QKeySequence(Qt.CTRL | Qt.Key_Return)]
-        )
+        send_can_msg_with_keybind_action.setShortcuts([QKeySequence("Ctrl+Return")])
         send_can_msg_with_keybind_action.triggered.connect(self.send_can_msg)
         self.addAction(send_can_msg_with_keybind_action)
 
@@ -155,6 +158,8 @@ class MainWindow(QMainWindow):
         # load settings
         self.settings = QSettings("CANViewer", "CANViewer")
         saved_bps = self.settings.value("bps", "1M")
+        if not isinstance(saved_bps, str):
+            saved_bps = "1M"
         self.baudrate_selector.set_baudrate_text(saved_bps)
 
     def closeEvent(self, event) -> None:
@@ -164,7 +169,7 @@ class MainWindow(QMainWindow):
     @Slot()
     def send_can_msg(self) -> None:
         # Check CAN connection status
-        if self.can_handler.get_connect_status() == False:
+        if not self.can_handler.get_connect_status():
             self.log("No connection!! Please connect to CAN device", color="red")
             return
 
@@ -173,7 +178,7 @@ class MainWindow(QMainWindow):
         usable: bool  # message is usable or not
         msg, usable = self.can_message_editor.get_message()
 
-        if usable == False:
+        if not usable:
             return
         if msg is None:
             return
@@ -189,14 +194,16 @@ class MainWindow(QMainWindow):
     def log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)
 
-    @Slot(str)
-    def _toggle_can_interface_connection(self, channel: str) -> None:
+    @Slot(str, str)
+    def _toggle_can_interface_connection(self, channel: str, can_type: str) -> None:
         # check CAN-BUS-Interface connection status
-        if self.can_handler.get_connect_status() == False:
+        if not self.can_handler.get_connect_status():
+            self.can_type = can_type
+            self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
             # Get Baudrate from 'baudrate_selector'
             bps: int = self.baudrate_selector.get_baudrate()
             # Make a connection
-            rslt = self.can_handler.connect_device(channel, bps, self.can_type)
+            rslt = self.can_handler.connect_device(channel, bps, can_type)
 
             if is_successful(rslt):
                 # set statuses
@@ -206,7 +213,7 @@ class MainWindow(QMainWindow):
                 self.log(f"Connected to {channel} : {bps} bps", color="green")
             else:
                 self.log(f"{rslt.failure()}", color="red")
-            
+
         else:
             self.can_handler.disconnect_devive()
             # set statuses
@@ -253,7 +260,7 @@ def main():
     )
 
     parser.add_argument(
-        "-c", "--can", type=str, default="slcan", help="CAN type (socketcan, slcan)"
+        "-c", "--can", type=str, default="slcan", help="CAN type (gs_usb, slcan)"
     )
     args = parser.parse_args()
 

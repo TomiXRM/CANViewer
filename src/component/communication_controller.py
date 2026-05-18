@@ -1,37 +1,18 @@
 from typing import Optional
 
 from PySide6.QtCore import (
-    Property,
-    QMutex,
-    QObject,
-    QRegularExpression,
-    QSettings,
-    Qt,
-    QThread,
     QTimer,
     Signal,
     Slot,
 )
 from PySide6.QtGui import (
-    QAction,
-    QFont,
     QIntValidator,
-    QKeySequence,
-    QRegularExpressionValidator,
-    QTextCursor,
 )
 from PySide6.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMainWindow,
     QPushButton,
-    QTableWidget,
-    QTextEdit,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -39,7 +20,6 @@ from ..utils.validator import Validator
 
 
 class CommunicationController(QWidget):
-
     send_can_msg_trigger_signal = Signal()
     log_clear_signal = Signal()
     log_signal = Signal(str, str)
@@ -106,7 +86,7 @@ class CommunicationController(QWidget):
     # If the button text is "Start", the 'interval_send_timer' is started with the interval value from the text box, and the button text is changed to "Stop".
     @Slot()
     def _on_start_stop_pressed_callback(self) -> None:
-        if self.can_connection_status == False:
+        if not self.can_connection_status:
             self._log("No connection!! Please connect to CAN device", color="red")
             return
 
