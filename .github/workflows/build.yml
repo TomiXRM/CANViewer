@@ -149,14 +149,24 @@ jobs:
           name: macos-arm64
           path: macos
 
+      - name: Package Linux AppImage artifacts
+        run: |
+          zip -j CANViewer_Linux-AppImage_x86_64.zip \
+            Linux-AppImage-x86_64/CANViewer-*.AppImage \
+            Linux-AppImage-x86_64/install_linux_desktop.sh \
+            Linux-AppImage-x86_64/CANViewer.png
+
+          zip -j CANViewer_Linux-AppImage_arm64.zip \
+            Linux-AppImage-arm64/CANViewer-*.AppImage \
+            Linux-AppImage-x86_64/install_linux_desktop.sh \
+            Linux-AppImage-x86_64/CANViewer.png
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            Linux-AppImage-x86_64/CANViewer-*.AppImage
-            Linux-AppImage-x86_64/install_linux_desktop.sh
-            Linux-AppImage-x86_64/CANViewer.png
-            Linux-AppImage-arm64/CANViewer-*.AppImage
+            CANViewer_Linux-AppImage_x86_64.zip
+            CANViewer_Linux-AppImage_arm64.zip
             windows/CANViewer.exe
             macos/CANViewer.dmg
         env:
