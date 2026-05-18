@@ -7,21 +7,21 @@ authors = [
 ]
 license = "LGPL-2.1"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "argparse>=1.4.0,<2.0.0",
     "pyserial>=3.5,<4.0",
-    "python-can[gs-usb]==4.5.0",
-    "pyside6>=6.8.2.1,<7.0.0",
-    "returns>=0.24.0,<0.25.0",
+    "python-can[gs-usb]>=4.6.1,<5.0.0",
+    "pyside6>=6.11.1,<7.0.0",
+    "returns>=0.27.0,<0.28.0",
 ]
 
 [dependency-groups]
 build = [
-    "nuitka>=2.4.11,<3.0.0",
+    "nuitka>=4.1,<5.0.0",
 ]
 dev = [
-    "mypy>=1.15.0,<2.0.0",
+    "mypy>=2.1.0,<3.0.0",
     "ruff>=0.11.0,<1.0.0",
     "ty>=0.0.1,<1.0.0",
     "types-pyserial>=3.5.0,<4.0.0",
