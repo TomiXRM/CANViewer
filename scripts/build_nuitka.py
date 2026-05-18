@@ -74,6 +74,16 @@ def build_macos(output_dir: Path, create_dmg: bool) -> None:
             f"--macos-signed-app-name={BUNDLE_ID}",
         ]
     )
+
+    sign_identity = os.environ.get("MACOS_SIGN_IDENTITY")
+    if sign_identity:
+        command.extend(
+            [
+                f"--macos-sign-identity={sign_identity}",
+                "--macos-sign-notarization",
+            ]
+        )
+
     run(command)
 
     app_bundles = sorted(output_dir.glob("*.app"))
@@ -109,6 +119,8 @@ def build_macos(output_dir: Path, create_dmg: bool) -> None:
                 str(dmg_path),
             ]
         )
+        if sign_identity and sign_identity != "auto":
+            run(["codesign", "--force", "--sign", sign_identity, str(dmg_path)])
 
 
 def build_windows(output_dir: Path) -> None:

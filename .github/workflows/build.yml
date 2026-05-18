@@ -13,7 +13,15 @@ jobs:
       UV_PYTHON: '3.12'
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact: ubuntu-x86_64
+          - os: ubuntu-24.04-arm
+            artifact: ubuntu-arm64
+          - os: windows-latest
+            artifact: windows-x86_64
+          - os: macos-latest
+            artifact: macos-arm64
 
     steps:
       - name: Check out code
@@ -44,14 +52,65 @@ jobs:
       - name: Type check with mypy
         run: uv run --locked --group dev mypy .
 
+      - name: Import Apple signing certificate
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE_BASE64" ]; then
+            echo "MACOS_CERTIFICATE_BASE64 is not set; building unsigned macOS artifacts."
+            exit 0
+          fi
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/developer_id_application.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          echo -n "$MACOS_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
       - name: Build with Nuitka
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: uv run --locked --group build python scripts/build_nuitka.py --clean --dmg --appimage
+
+      - name: Notarize macOS DMG
+        if: matrix.os == 'macos-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "Apple notarization secrets are not set; skipping notarization."
+            exit 0
+          fi
+
+          xcrun notarytool submit dist/CANViewer.dmg \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple dist/CANViewer.dmg
+          xcrun stapler validate dist/CANViewer.dmg
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}
-          path: dist/**
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/CANViewer-*.AppImage
+            dist/install_linux_desktop.sh
+            dist/CANViewer.png
+            dist/CANViewer.exe
+            dist/CANViewer.dmg
           if-no-files-found: error
 
   release:
@@ -66,29 +125,38 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Download Artifacts (Ubuntu)
+      - name: Download Artifacts (Ubuntu x86_64)
         uses: actions/download-artifact@v4
         with:
-          name: ubuntu-latest
-          path: ubuntu
+          name: ubuntu-x86_64
+          path: ubuntu-x86_64
+
+      - name: Download Artifacts (Ubuntu arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: ubuntu-arm64
+          path: ubuntu-arm64
 
       - name: Download Artifacts (Windows)
         uses: actions/download-artifact@v4
         with:
-          name: windows-latest
+          name: windows-x86_64
           path: windows
 
       - name: Download Artifacts (macOS)
         uses: actions/download-artifact@v4
         with:
-          name: macos-latest
+          name: macos-arm64
           path: macos
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ubuntu/CANViewer-*.AppImage
+            ubuntu-x86_64/CANViewer-*.AppImage
+            ubuntu-x86_64/install_linux_desktop.sh
+            ubuntu-x86_64/CANViewer.png
+            ubuntu-arm64/CANViewer-*.AppImage
             windows/CANViewer.exe
             macos/CANViewer.dmg
         env:
