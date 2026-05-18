@@ -55,6 +55,8 @@ You can download a pre-built application from [Releases](https://github.com/Tomi
   - Resolving dependencies using uv will automatically install the packages needed to run your Python application.
 - It is useful to have `make` included!
 
+For maintenance commands, dependency updates, CI, and release builds, see [Development Guide](./docs/development.md).
+
 ## How to build
 
 1. Open in terminal
