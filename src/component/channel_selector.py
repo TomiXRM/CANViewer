@@ -14,7 +14,7 @@ else:
 
 
 class ChannelSelector(QWidget):
-    channel_signal = Signal(str)
+    channel_signal = Signal(str, str)
 
     def __init__(self, parent=None, can_type="slcan"):
         super().__init__(parent)
@@ -25,6 +25,17 @@ class ChannelSelector(QWidget):
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
+
+        # CAN interface selector
+        self._can_type_combobox = QComboBox()
+        self._can_type_combobox.addItem("SLCAN", "slcan")
+        self._can_type_combobox.addItem("gs_usb", "gs_usb")
+        self._can_type_combobox.setFixedWidth(90)
+        current_index = self._can_type_combobox.findData(self._can_type)
+        if current_index >= 0:
+            self._can_type_combobox.setCurrentIndex(current_index)
+        self._can_type_combobox.currentIndexChanged.connect(self._on_can_type_changed)
+        self._layout.addWidget(self._can_type_combobox)
 
         # Channel selection list layout
         self._list_layout = QHBoxLayout()
@@ -55,9 +66,11 @@ class ChannelSelector(QWidget):
 
     def connection_complete(self) -> None:
         self._connect_button.setText("Disconnect")
+        self._can_type_combobox.setEnabled(False)
 
     def disconnection_complete(self) -> None:
         self._connect_button.setText("Connect")
+        self._can_type_combobox.setEnabled(True)
 
     @Slot()
     def _refresh(self) -> None:
@@ -93,8 +106,17 @@ class ChannelSelector(QWidget):
             print("Invalid CAN type")
 
     @Slot()
+    def _on_can_type_changed(self) -> None:
+        can_type = self._can_type_combobox.currentData()
+        if not isinstance(can_type, str):
+            return
+
+        self._can_type = can_type
+        self._refresh()
+
+    @Slot()
     def _on_connect_button_clicked(self) -> None:
         channel = self._channel_combobox.currentData()
         if channel is None:
             channel = self._channel_combobox.currentText()
-        self.channel_signal.emit(str(channel))
+        self.channel_signal.emit(str(channel), self._can_type)

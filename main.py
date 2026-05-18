@@ -194,14 +194,16 @@ class MainWindow(QMainWindow):
     def log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)
 
-    @Slot(str)
-    def _toggle_can_interface_connection(self, channel: str) -> None:
+    @Slot(str, str)
+    def _toggle_can_interface_connection(self, channel: str, can_type: str) -> None:
         # check CAN-BUS-Interface connection status
         if not self.can_handler.get_connect_status():
+            self.can_type = can_type
+            self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
             # Get Baudrate from 'baudrate_selector'
             bps: int = self.baudrate_selector.get_baudrate()
             # Make a connection
-            rslt = self.can_handler.connect_device(channel, bps, self.can_type)
+            rslt = self.can_handler.connect_device(channel, bps, can_type)
 
             if is_successful(rslt):
                 # set statuses
