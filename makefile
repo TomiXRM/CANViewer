@@ -24,7 +24,11 @@ install:
 	uv sync --all-groups
 
 format:
-	uv run --group dev black .
+	uv run --group dev ruff format .
+	uv run --group dev ruff check --fix .
 
 analyze:
+	uv run --group dev ruff format --check .
+	uv run --group dev ruff check .
+	uv run --group dev ty check .
 	uv run --group dev mypy .

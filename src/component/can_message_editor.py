@@ -2,10 +2,18 @@ from typing import Optional, Tuple, Union
 
 import can
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtGui import QIntValidator
+from PySide6.QtGui import QIntValidator, QMouseEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QWidget
 
 from ..utils.validator import Validator
+
+
+class ClickableLabel(QLabel):
+    clicked = Signal()
+
+    def mousePressEvent(self, ev: QMouseEvent) -> None:
+        self.clicked.emit()
+        super().mousePressEvent(ev)
 
 
 class CanMessageEditor(QWidget):
@@ -39,8 +47,8 @@ class CanMessageEditor(QWidget):
         self._layout.addWidget(self.id_edit)
 
         # Label for DataFrame
-        self.dataframe_label = QLabel("DataFrame")
-        self.dataframe_label.mousePressEvent = lambda event: self._toggle_radix()
+        self.dataframe_label = ClickableLabel("DataFrame")
+        self.dataframe_label.clicked.connect(self._toggle_radix)
         self._layout.addWidget(self.dataframe_label)
 
         # DataFrame (Edit)

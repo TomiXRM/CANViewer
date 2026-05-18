@@ -1,15 +1,19 @@
+from typing import Any
+
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
 from serial.tools.list_ports import comports
 
+GsUsb: Any = None
 try:
-    from gs_usb.gs_usb import GsUsb  # type: ignore[import-untyped]
+    from gs_usb.gs_usb import GsUsb as _GsUsb  # type: ignore[import-untyped]
 except ImportError:
-    GsUsb = None
+    pass
+else:
+    GsUsb = _GsUsb
 
 
 class ChannelSelector(QWidget):
-
     channel_signal = Signal(str)
 
     def __init__(self, parent=None, can_type="slcan"):

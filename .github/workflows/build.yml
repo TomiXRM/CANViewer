@@ -31,6 +31,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-groups
 
+      - name: Check formatting
+        run: uv run --locked --group dev ruff format --check .
+
+      - name: Lint
+        run: uv run --locked --group dev ruff check .
+
+      - name: Type check with ty
+        run: uv run --locked --group dev ty check .
+
+      - name: Type check with mypy
+        run: uv run --locked --group dev mypy .
+
       - name: Build with Nuitka
         run: uv run --locked --group build python scripts/build_nuitka.py --clean --dmg --appimage
 

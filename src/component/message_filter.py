@@ -1,3 +1,5 @@
+from typing import cast
+
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
@@ -57,9 +59,10 @@ class MessageFilter(QWidget):
     def update_ignore_ids(self) -> None:
         ignore_ids = []
         for row in range(self._table.rowCount()):
-            id_edit = self._table.cellWidget(row, 0)
-            checkbox = self._table.cellWidget(row, 2)
-            if id_edit and checkbox.findChild(QCheckBox).isChecked():
+            id_edit = cast(QLineEdit | None, self._table.cellWidget(row, 0))
+            checkbox_widget = self._table.cellWidget(row, 2)
+            checkbox = checkbox_widget.findChild(QCheckBox) if checkbox_widget else None
+            if id_edit and checkbox and checkbox.isChecked():
                 text = id_edit.text()
                 if text:
                     ignore_ids.append(Validator.decimalize(text, self.radix_type))
@@ -80,7 +83,7 @@ class MessageFilter(QWidget):
 
         self._table.update_radix(new_radix)
         for row in range(self._table.rowCount()):
-            id_edit = self._table.cellWidget(row, 0)
+            id_edit = cast(QLineEdit | None, self._table.cellWidget(row, 0))
             if id_edit:
                 if new_radix == "hex":
                     id_edit.setStyleSheet(self.style_edit_hex)

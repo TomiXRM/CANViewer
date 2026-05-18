@@ -9,8 +9,8 @@ class CANHandler(QThread):
     def __init__(self):
         super().__init__()
         self.ignore_ids = []
-        self.can_bus = None
-        self.can_notifier = None
+        self.can_bus: can.BusABC | None = None
+        self.can_notifier: can.Notifier | None = None
 
     def connect_device(
         self, channel: str, bps: int, interface: str
@@ -34,8 +34,11 @@ class CANHandler(QThread):
             return Failure(e)
 
     def disconnect_devive(self) -> None:
-        self.can_notifier.stop()
-        self.can_bus.shutdown()
+        if self.can_notifier is not None:
+            self.can_notifier.stop()
+        if self.can_bus is not None:
+            self.can_bus.shutdown()
+        self.can_notifier = None
         self.can_bus = None
 
     def get_connect_status(self) -> bool:
@@ -45,6 +48,8 @@ class CANHandler(QThread):
             return True
 
     def can_send(self, msg: can.Message) -> None:
+        if self.can_bus is None:
+            return
         msg.is_rx = False
         self.can_bus.send(msg)
 

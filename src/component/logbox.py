@@ -12,7 +12,7 @@ class LogBox(QTextEdit):
         super().__init__(parent)
         self.setReadOnly(True)
         self.setFont(QFont("Menlo", 14))
-        self.setLineWrapMode(QTextEdit.NoWrap)
+        self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
 
     # show log to logbox
     @Slot(str, str)
