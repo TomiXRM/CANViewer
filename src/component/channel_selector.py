@@ -71,6 +71,7 @@ class ChannelSelector(QWidget):
     def disconnection_complete(self) -> None:
         self._connect_button.setText("Connect")
         self._can_type_combobox.setEnabled(True)
+        self._update_connect_button_enabled()
 
     @Slot()
     def _refresh(self) -> None:
@@ -105,6 +106,15 @@ class ChannelSelector(QWidget):
         else:
             print("Invalid CAN type")
 
+        self._update_connect_button_enabled()
+
+    def _update_connect_button_enabled(self) -> None:
+        if self._connect_button.text() == "Disconnect":
+            self._connect_button.setEnabled(True)
+            return
+
+        self._connect_button.setEnabled(self._channel_combobox.count() > 0)
+
     @Slot()
     def _on_can_type_changed(self) -> None:
         can_type = self._can_type_combobox.currentData()
@@ -119,4 +129,6 @@ class ChannelSelector(QWidget):
         channel = self._channel_combobox.currentData()
         if channel is None:
             channel = self._channel_combobox.currentText()
+        if str(channel) == "":
+            return
         self.channel_signal.emit(str(channel), self._can_type)

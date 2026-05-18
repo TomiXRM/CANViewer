@@ -15,11 +15,14 @@ class CANHandler(QThread):
     def connect_device(
         self, channel: str, bps: int, interface: str
     ) -> Result[bool, Exception]:
-        bus_channel: str | int = channel
-        if interface == "gs_usb":
-            bus_channel = int(channel)
-
         try:
+            if channel == "":
+                raise ValueError("No CAN channel is selected")
+
+            bus_channel: str | int = channel
+            if interface == "gs_usb":
+                bus_channel = int(channel)
+
             self.can_bus = can.interface.Bus(
                 channel=bus_channel,
                 bitrate=bps,
