@@ -43,6 +43,8 @@ def _create_can_bus(
         can_bus_logger.disabled = True
 
     try:
+        if can_fd and interface == "gs_usb":
+            raise ValueError("CAN-FD is not supported for gs_usb channels yet")
         if can_fd and interface == "slcan" and data_bitrate is not None:
             timing = can.BitTimingFd.from_sample_point(
                 f_clock=80_000_000,
@@ -110,6 +112,8 @@ class CANHandler(QThread):
         try:
             if channel == "":
                 raise ValueError("No CAN channel is selected")
+            if can_fd and interface == "gs_usb":
+                raise ValueError("CAN-FD is not supported for gs_usb channels yet")
 
             bus_channel: str | int = channel
             if interface == "gs_usb":

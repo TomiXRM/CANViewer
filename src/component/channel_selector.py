@@ -133,6 +133,9 @@ class ChannelSelector(QWidget):
         self._list_layout = QHBoxLayout()
         self._list_layout.addWidget(QLabel("Port"))
         self._channel_combobox = QComboBox()
+        self._channel_combobox.currentIndexChanged.connect(
+            self._on_channel_selection_changed
+        )
         self._list_layout.addWidget(self._channel_combobox)
         self._list_layout.addWidget(QLabel("Mode"))
         self._mode_combobox = QComboBox()
@@ -174,6 +177,7 @@ class ChannelSelector(QWidget):
         self._mode_combobox.setEnabled(True)
         self._refresh_button.setEnabled(True)
         self._update_connect_button_enabled()
+        self._update_mode_availability()
 
     @Slot()
     def _refresh(self) -> None:
@@ -210,7 +214,9 @@ class ChannelSelector(QWidget):
         selected = self._channel_combobox.currentData()
         if not isinstance(selected, CanChannel):
             return
-        self.channel_signal.emit(str(selected.channel), selected.interface, self._is_can_fd())
+        self.channel_signal.emit(
+            str(selected.channel), selected.interface, self._is_can_fd()
+        )
 
     def _is_can_fd(self) -> bool:
         return self._mode_combobox.currentText() == "CAN-FD"
@@ -218,3 +224,17 @@ class ChannelSelector(QWidget):
     @Slot()
     def _emit_mode_changed(self) -> None:
         self.mode_signal.emit(self._is_can_fd())
+
+    @Slot()
+    def _on_channel_selection_changed(self) -> None:
+        self._update_mode_availability()
+
+    def _update_mode_availability(self) -> None:
+        selected = self._channel_combobox.currentData()
+        can_fd_available = not (
+            isinstance(selected, CanChannel) and selected.interface == "gs_usb"
+        )
+        if not can_fd_available:
+            self._mode_combobox.setCurrentText("CAN")
+        self._mode_combobox.setEnabled(can_fd_available)
+        self._emit_mode_changed()
