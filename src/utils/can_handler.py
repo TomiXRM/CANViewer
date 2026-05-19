@@ -31,7 +31,11 @@ def _check_gs_usb_access(index: int) -> None:
 
 
 def _create_can_bus(
-    channel: str | int, bitrate: int, interface: str, can_fd: bool = False
+    channel: str | int,
+    bitrate: int,
+    interface: str,
+    can_fd: bool = False,
+    data_bitrate: int | None = None,
 ) -> can.BusABC:
     can_bus_logger = logging.getLogger("can.bus")
     previous_disabled = can_bus_logger.disabled
@@ -40,6 +44,15 @@ def _create_can_bus(
 
     try:
         if can_fd and interface == "socketcan":
+            if data_bitrate is not None:
+                return can.interface.Bus(
+                    channel=channel,
+                    bitrate=bitrate,
+                    receive_own_messages=False,
+                    interface=interface,
+                    fd=True,
+                    data_bitrate=data_bitrate,
+                )
             return can.interface.Bus(
                 channel=channel,
                 bitrate=bitrate,
@@ -73,7 +86,12 @@ class CANHandler(QThread):
         self.can_notifier: can.Notifier | None = None
 
     def connect_device(
-        self, channel: str, bps: int, interface: str, can_fd: bool = False
+        self,
+        channel: str,
+        bps: int,
+        interface: str,
+        can_fd: bool = False,
+        data_bps: int | None = None,
     ) -> Result[bool, Exception]:
         try:
             if channel == "":
@@ -84,7 +102,9 @@ class CANHandler(QThread):
                 bus_channel = int(channel)
                 _check_gs_usb_access(bus_channel)
 
-            self.can_bus = _create_can_bus(bus_channel, bps, interface, can_fd)
+            self.can_bus = _create_can_bus(
+                bus_channel, bps, interface, can_fd, data_bps
+            )
             self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
             return Success(True)
         except Exception as e:

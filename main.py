@@ -47,6 +47,11 @@ class MainWindow(QMainWindow):
         self.channel_selector = ChannelSelector(preferred_interface=self.can_type)
         self.can_message_editor = CanMessageEditor()
         self.baudrate_selector = BaudrateSelector()
+        self.data_baudrate_selector = BaudrateSelector(
+            default_bps="2M",
+            label="Data Bitrate:",
+            bitrate_options=["1M", "2M", "4M", "5M", "8M"],
+        )
         self.communication_controller = CommunicationController()
         self.message_filter = MessageFilter()
         self.log_box = LogBox()
@@ -65,8 +70,10 @@ class MainWindow(QMainWindow):
         # Bottom Layout
         self._layout_bottom = QHBoxLayout()
         self._layout_bottom.addWidget(self.baudrate_selector)
+        self._layout_bottom.addWidget(self.data_baudrate_selector)
         self._layout_bottom.addWidget(self.communication_controller)
         self._layout_main.addLayout(self._layout_bottom)
+        self.data_baudrate_selector.setVisible(False)
 
         # Hide Message Filter Default
         self.message_filter.setVisible(False)
@@ -163,9 +170,16 @@ class MainWindow(QMainWindow):
         if not isinstance(saved_bps, str):
             saved_bps = "1M"
         self.baudrate_selector.set_baudrate_text(saved_bps)
+        saved_data_bps = self.settings.value("data_bps", "2M")
+        if not isinstance(saved_data_bps, str):
+            saved_data_bps = "2M"
+        self.data_baudrate_selector.set_baudrate_text(saved_data_bps)
 
     def closeEvent(self, event) -> None:
         self.settings.setValue("bps", self.baudrate_selector.get_baudrate_text())
+        self.settings.setValue(
+            "data_bps", self.data_baudrate_selector.get_baudrate_text()
+        )
         event.accept()
 
     @Slot()
@@ -208,17 +222,25 @@ class MainWindow(QMainWindow):
             self._update_window_title()
             # Get Baudrate from 'baudrate_selector'
             bps: int = self.baudrate_selector.get_baudrate()
+            data_bps: int | None = None
+            if self.can_fd_enabled:
+                data_bps = self.data_baudrate_selector.get_baudrate()
             # Make a connection
             rslt = self.can_handler.connect_device(
-                channel, bps, can_type, self.can_fd_enabled
+                channel, bps, can_type, self.can_fd_enabled, data_bps
             )
 
             if is_successful(rslt):
                 # set statuses
                 self.baudrate_selector.set_disable()  # Make baudrate_selector uneditable
+                self.data_baudrate_selector.set_disable()
                 # Notify the CAN-BUS connection is established to the 'channel_selector'
                 self.can_connection_status_signal.emit(True)
-                self.log(f"Connected to {channel} : {bps} bps", color="green")
+                data_bps_text = f" / data {data_bps} bps" if data_bps else ""
+                self.log(
+                    f"Connected to {channel} : {bps} bps{data_bps_text}",
+                    color="green",
+                )
             else:
                 self.log(f"{rslt.failure()}", color="red")
 
@@ -226,6 +248,7 @@ class MainWindow(QMainWindow):
             self.can_handler.disconnect_devive()
             # set statuses
             self.baudrate_selector.set_enable()  # Make baudrate_selector editable
+            self.data_baudrate_selector.set_enable()
             # Notify the CAN-BUS connection is disconnected to the 'channel_selector'
             self.can_connection_status_signal.emit(False)
             self.log("Disconnected", color="green")
@@ -262,6 +285,7 @@ class MainWindow(QMainWindow):
     def _on_can_mode_changed(self, can_fd: bool) -> None:
         self.can_fd_enabled = can_fd
         self.can_message_editor.set_can_fd_mode(self.can_fd_enabled)
+        self.data_baudrate_selector.setVisible(self.can_fd_enabled)
         self._update_window_title()
 
     def _update_window_title(self) -> None:

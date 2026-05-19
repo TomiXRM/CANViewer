@@ -3,18 +3,34 @@ from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 
 class BaudrateSelector(QWidget):
-    def __init__(self, parent=None, default_bps: str = "1000k"):
+    def __init__(
+        self,
+        parent=None,
+        default_bps: str = "1000k",
+        label: str = "Baudrate:",
+        bitrate_options: list[str] | None = None,
+    ):
         super().__init__(parent)
 
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
-        self._layout.addWidget(QLabel("Baudrate:"))
+        self._layout.addWidget(QLabel(label))
         self._bps_combobox = QComboBox()
         self._bps_combobox.setEditable(True)
-        self._bps_combobox.addItems(
-            ["10k", "20k", "50k", "100k", "125k", "250k", "500k", "800k", "1000k"]
-        )
+        if bitrate_options is None:
+            bitrate_options = [
+                "10k",
+                "20k",
+                "50k",
+                "100k",
+                "125k",
+                "250k",
+                "500k",
+                "800k",
+                "1000k",
+            ]
+        self._bps_combobox.addItems(bitrate_options)
         self._bps_combobox.setCurrentText(default_bps)
         self._bps_combobox.setValidator(QIntValidator())
         self._layout.addWidget(self._bps_combobox)
