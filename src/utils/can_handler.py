@@ -1,6 +1,58 @@
+import gc
+import logging
+import traceback
+
 import can
+import usb.core
+from gs_usb.gs_usb import GsUsb
 from PySide6.QtCore import QThread, Signal, Slot
 from returns.result import Result, Success, Failure
+
+
+def _format_connection_error(error: Exception, interface: str) -> Exception:
+    if (
+        interface == "gs_usb"
+        and isinstance(error, usb.core.USBError)
+        and getattr(error, "errno", None) == 13
+    ):
+        return PermissionError(
+            "Access denied opening gs_usb device. On macOS, grant libusb access "
+            "by running CANViewer with sufficient USB permissions, for example "
+            "`sudo uv run main.py -c gs_usb`, then reconnect the adapter if needed."
+        )
+    return error
+
+
+def _check_gs_usb_access(index: int) -> None:
+    devs = GsUsb.scan()
+    if len(devs) <= index:
+        raise ValueError(f"Cannot find gs_usb device {index}. Devices found: {len(devs)}")
+    _ = devs[index].device_capability
+
+
+def _create_can_bus(
+    channel: str | int, bitrate: int, interface: str
+) -> can.BusABC:
+    can_bus_logger = logging.getLogger("can.bus")
+    previous_disabled = can_bus_logger.disabled
+    if interface == "gs_usb":
+        can_bus_logger.disabled = True
+
+    try:
+        return can.interface.Bus(
+            channel=channel,
+            bitrate=bitrate,
+            receive_own_messages=False,
+            interface=interface,
+        )
+    except Exception as error:
+        if interface == "gs_usb":
+            traceback.clear_frames(error.__traceback__)
+            error.__traceback__ = None
+            gc.collect()
+        raise error from None
+    finally:
+        can_bus_logger.disabled = previous_disabled
 
 
 class CANHandler(QThread):
@@ -22,16 +74,13 @@ class CANHandler(QThread):
             bus_channel: str | int = channel
             if interface == "gs_usb":
                 bus_channel = int(channel)
+                _check_gs_usb_access(bus_channel)
 
-            self.can_bus = can.interface.Bus(
-                channel=bus_channel,
-                bitrate=bps,
-                receive_own_messages=False,
-                interface=interface,
-            )
+            self.can_bus = _create_can_bus(bus_channel, bps, interface)
             self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
             return Success(True)
         except Exception as e:
+            e = _format_connection_error(e, interface)
             print(e)
             self.can_bus = None
             return Failure(e)
