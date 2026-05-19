@@ -43,6 +43,20 @@ def _create_can_bus(
         can_bus_logger.disabled = True
 
     try:
+        if can_fd and interface == "slcan" and data_bitrate is not None:
+            timing = can.BitTimingFd.from_sample_point(
+                f_clock=80_000_000,
+                nom_bitrate=bitrate,
+                nom_sample_point=75.0,
+                data_bitrate=data_bitrate,
+                data_sample_point=75.0,
+            )
+            return can.interface.Bus(
+                channel=channel,
+                receive_own_messages=False,
+                interface=interface,
+                timing=timing,
+            )
         if can_fd and interface == "socketcan":
             if data_bitrate is not None:
                 return can.interface.Bus(

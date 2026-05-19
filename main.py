@@ -50,7 +50,8 @@ class MainWindow(QMainWindow):
         self.data_baudrate_selector = BaudrateSelector(
             default_bps="2M",
             label="Data Bitrate:",
-            bitrate_options=["1M", "2M", "4M", "5M", "8M"],
+            bitrate_options=["2M", "5M"],
+            allow_custom=False,
         )
         self.communication_controller = CommunicationController()
         self.message_filter = MessageFilter()

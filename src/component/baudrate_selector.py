@@ -9,8 +9,10 @@ class BaudrateSelector(QWidget):
         default_bps: str = "1000k",
         label: str = "Baudrate:",
         bitrate_options: list[str] | None = None,
+        allow_custom: bool = True,
     ):
         super().__init__(parent)
+        self._default_bps = default_bps
 
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -30,12 +32,17 @@ class BaudrateSelector(QWidget):
                 "800k",
                 "1000k",
             ]
+        self._bitrate_options = bitrate_options
         self._bps_combobox.addItems(bitrate_options)
         self._bps_combobox.setCurrentText(default_bps)
-        self._bps_combobox.setValidator(QIntValidator())
+        self._bps_combobox.setEditable(allow_custom)
+        if allow_custom:
+            self._bps_combobox.setValidator(QIntValidator())
         self._layout.addWidget(self._bps_combobox)
 
     def set_baudrate_text(self, bps: str) -> None:
+        if not self._bps_combobox.isEditable() and bps not in self._bitrate_options:
+            bps = self._default_bps
         self._bps_combobox.setCurrentText(bps)
 
     def get_baudrate_text(self) -> str:
