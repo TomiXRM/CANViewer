@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Signal, Slot
@@ -13,29 +15,118 @@ else:
     GsUsb = _GsUsb
 
 
+@dataclass(frozen=True)
+class CanChannel:
+    interface: str
+    channel: str | int
+    label: str
+
+
+SLCAN_EXCLUDED_KEYWORDS = (
+    "BLUETOOTH",
+    "DEBUG-CONSOLE",
+)
+
+SLCAN_INCLUDED_KEYWORDS = (
+    "CAN",
+    "USB2CAN",
+    "CANABLE",
+    "CANDLELIGHT",
+)
+
+
+def _get_gs_usb_device_label(index: int, device: Any) -> str:
+    usb_device = getattr(device, "usb_device", None) or getattr(device, "gs_usb", None)
+    manufacturer = getattr(usb_device, "manufacturer", None)
+    product = getattr(usb_device, "product", None)
+    serial_number = getattr(device, "serial_number", None)
+    description = " ".join(
+        str(value) for value in [manufacturer, product, serial_number] if value
+    )
+    return f"{index}: {description}" if description else str(index)
+
+
+def _is_slcan_candidate(port_info: Any) -> bool:
+    text = f"{port_info.device} {port_info.description} {port_info.hwid}".upper()
+    if any(keyword in text for keyword in SLCAN_EXCLUDED_KEYWORDS):
+        return False
+    return any(keyword in text for keyword in SLCAN_INCLUDED_KEYWORDS)
+
+
+def _discover_slcan_channels() -> list[CanChannel]:
+    channels: list[CanChannel] = []
+    port_infos = sorted(
+        (port_info for port_info in comports() if _is_slcan_candidate(port_info)),
+        key=lambda port_info: (
+            "CAN" not in f"{port_info.description} {port_info.hwid}".upper(),
+            port_info.device,
+        ),
+    )
+    for port_info in port_infos:
+        port = port_info.device
+        desc = port_info.description
+        label = f"SLCAN - {port}"
+        if desc:
+            label = f"{label} ({desc})"
+        channels.append(CanChannel(interface="slcan", channel=port, label=label))
+    return channels
+
+
+def _discover_gs_usb_channels() -> list[CanChannel]:
+    if GsUsb is None:
+        print("gs_usb is not installed")
+        return []
+
+    channels: list[CanChannel] = []
+    try:
+        devices = GsUsb.scan()
+    except Exception as error:
+        print(f"gs_usb scan failed: {error}")
+        return []
+
+    for index, device in enumerate(devices):
+        device_label = _get_gs_usb_device_label(index, device)
+        channels.append(
+            CanChannel(
+                interface="gs_usb",
+                channel=index,
+                label=f"gs_usb - {device_label}",
+            )
+        )
+    return channels
+
+
+def _discover_socketcan_channels() -> list[CanChannel]:
+    net_dir = Path("/sys/class/net")
+    if not net_dir.exists():
+        return []
+
+    channels: list[CanChannel] = []
+    for net_device in sorted(net_dir.iterdir()):
+        name = net_device.name
+        if name.startswith(("can", "vcan")):
+            channels.append(
+                CanChannel(
+                    interface="socketcan",
+                    channel=name,
+                    label=f"SocketCAN - {name}",
+                )
+            )
+    return channels
+
+
 class ChannelSelector(QWidget):
     channel_signal = Signal(str, str)
 
-    def __init__(self, parent=None, can_type="slcan"):
+    def __init__(self, parent=None, preferred_interface="slcan"):
         super().__init__(parent)
 
-        self._can_type = can_type  # "slcan" or "gs_usb"
+        self._preferred_interface = preferred_interface
 
         # main layout
         self._layout = QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
-
-        # CAN interface selector
-        self._can_type_combobox = QComboBox()
-        self._can_type_combobox.addItem("SLCAN", "slcan")
-        self._can_type_combobox.addItem("gs_usb", "gs_usb")
-        self._can_type_combobox.setFixedWidth(90)
-        current_index = self._can_type_combobox.findData(self._can_type)
-        if current_index >= 0:
-            self._can_type_combobox.setCurrentIndex(current_index)
-        self._can_type_combobox.currentIndexChanged.connect(self._on_can_type_changed)
-        self._layout.addWidget(self._can_type_combobox)
 
         # Channel selection list layout
         self._list_layout = QHBoxLayout()
@@ -66,45 +157,35 @@ class ChannelSelector(QWidget):
 
     def connection_complete(self) -> None:
         self._connect_button.setText("Disconnect")
-        self._can_type_combobox.setEnabled(False)
+        self._channel_combobox.setEnabled(False)
+        self._refresh_button.setEnabled(False)
 
     def disconnection_complete(self) -> None:
         self._connect_button.setText("Connect")
-        self._can_type_combobox.setEnabled(True)
+        self._channel_combobox.setEnabled(True)
+        self._refresh_button.setEnabled(True)
         self._update_connect_button_enabled()
 
     @Slot()
     def _refresh(self) -> None:
         self._channel_combobox.clear()
-        if self._can_type == "slcan":
-            # List available ports
-            for n, port_info in enumerate(sorted(comports()), 1):
-                port = port_info.device
-                desc = port_info.description
-                devid = port_info.hwid
-                print(f" {n}: {port:20} {desc} {devid}")
-                self._channel_combobox.addItem(port)
-                # set CANable device as default
-                if "CAN" in desc:
-                    self._channel_combobox.setCurrentText(port)
+        channels = [
+            *_discover_slcan_channels(),
+            *_discover_gs_usb_channels(),
+            *_discover_socketcan_channels(),
+        ]
+        preferred_index = -1
+        for index, channel in enumerate(channels):
+            print(f" {index}: {channel.label}")
+            self._channel_combobox.addItem(channel.label, channel)
+            if (
+                preferred_index < 0
+                and channel.interface == self._preferred_interface
+            ):
+                preferred_index = index
 
-        elif self._can_type == "gs_usb":
-            if GsUsb is None:
-                print("gs_usb is not installed")
-                return
-
-            # List available gs_usb devices by index.
-            for index, device in enumerate(GsUsb.scan()):
-                product = getattr(device.usb_device, "product", None)
-                manufacturer = getattr(device.usb_device, "manufacturer", None)
-                description = " ".join(
-                    value for value in [manufacturer, product] if value
-                )
-                label = f"{index}: {description}" if description else str(index)
-                print(f" {index}: {label}")
-                self._channel_combobox.addItem(label, index)
-        else:
-            print("Invalid CAN type")
+        if preferred_index >= 0:
+            self._channel_combobox.setCurrentIndex(preferred_index)
 
         self._update_connect_button_enabled()
 
@@ -116,19 +197,8 @@ class ChannelSelector(QWidget):
         self._connect_button.setEnabled(self._channel_combobox.count() > 0)
 
     @Slot()
-    def _on_can_type_changed(self) -> None:
-        can_type = self._can_type_combobox.currentData()
-        if not isinstance(can_type, str):
-            return
-
-        self._can_type = can_type
-        self._refresh()
-
-    @Slot()
     def _on_connect_button_clicked(self) -> None:
-        channel = self._channel_combobox.currentData()
-        if channel is None:
-            channel = self._channel_combobox.currentText()
-        if str(channel) == "":
+        selected = self._channel_combobox.currentData()
+        if not isinstance(selected, CanChannel):
             return
-        self.channel_signal.emit(str(channel), self._can_type)
+        self.channel_signal.emit(str(selected.channel), selected.interface)

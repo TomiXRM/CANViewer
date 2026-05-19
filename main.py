@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
 
         # Components
         self.can_handler = CANHandler()
-        self.channel_selector = ChannelSelector(can_type=self.can_type)
+        self.channel_selector = ChannelSelector(preferred_interface=self.can_type)
         self.can_message_editor = CanMessageEditor()
         self.baudrate_selector = BaudrateSelector()
         self.communication_controller = CommunicationController()
@@ -260,11 +260,15 @@ def main():
     )
 
     parser.add_argument(
-        "-c", "--can", type=str, default="slcan", help="CAN type (gs_usb, slcan)"
+        "-c",
+        "--can",
+        type=str,
+        default="slcan",
+        help="Preferred CAN interface (slcan, gs_usb, socketcan)",
     )
     args = parser.parse_args()
 
-    print("CAN Type:", args.can)
+    print("Preferred CAN interface:", args.can)
     app = QApplication(sys.argv)
     window = MainWindow(args.can, "dec")
     window.show()

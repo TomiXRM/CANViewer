@@ -57,6 +57,7 @@ def nuitka_base_command(output_dir: Path) -> list[str]:
         "--enable-plugin=pyside6",
         "--include-module=can.interfaces.slcan",
         "--include-module=can.interfaces.gs_usb",
+        "--include-module=can.interfaces.socketcan",
         "--include-package=gs_usb",
         "--include-package=usb",
         "--assume-yes-for-downloads",
