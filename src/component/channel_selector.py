@@ -116,7 +116,8 @@ def _discover_socketcan_channels() -> list[CanChannel]:
 
 
 class ChannelSelector(QWidget):
-    channel_signal = Signal(str, str)
+    channel_signal = Signal(str, str, bool)
+    mode_signal = Signal(bool)
 
     def __init__(self, parent=None, preferred_interface="slcan"):
         super().__init__(parent)
@@ -133,6 +134,11 @@ class ChannelSelector(QWidget):
         self._list_layout.addWidget(QLabel("Port"))
         self._channel_combobox = QComboBox()
         self._list_layout.addWidget(self._channel_combobox)
+        self._list_layout.addWidget(QLabel("Mode"))
+        self._mode_combobox = QComboBox()
+        self._mode_combobox.addItems(["CAN", "CAN-FD"])
+        self._mode_combobox.currentIndexChanged.connect(self._emit_mode_changed)
+        self._list_layout.addWidget(self._mode_combobox)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addLayout(self._list_layout)
 
@@ -147,6 +153,7 @@ class ChannelSelector(QWidget):
         self._layout.addWidget(self._refresh_button)
 
         self._refresh()
+        self._emit_mode_changed()
 
     @Slot(bool)
     def can_connection_change_callback(self, connected: bool) -> None:
@@ -158,11 +165,13 @@ class ChannelSelector(QWidget):
     def connection_complete(self) -> None:
         self._connect_button.setText("Disconnect")
         self._channel_combobox.setEnabled(False)
+        self._mode_combobox.setEnabled(False)
         self._refresh_button.setEnabled(False)
 
     def disconnection_complete(self) -> None:
         self._connect_button.setText("Connect")
         self._channel_combobox.setEnabled(True)
+        self._mode_combobox.setEnabled(True)
         self._refresh_button.setEnabled(True)
         self._update_connect_button_enabled()
 
@@ -201,4 +210,11 @@ class ChannelSelector(QWidget):
         selected = self._channel_combobox.currentData()
         if not isinstance(selected, CanChannel):
             return
-        self.channel_signal.emit(str(selected.channel), selected.interface)
+        self.channel_signal.emit(str(selected.channel), selected.interface, self._is_can_fd())
+
+    def _is_can_fd(self) -> bool:
+        return self._mode_combobox.currentText() == "CAN-FD"
+
+    @Slot()
+    def _emit_mode_changed(self) -> None:
+        self.mode_signal.emit(self._is_can_fd())

@@ -34,8 +34,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.radix_type = initial_radix_type
         self.can_type = can_type
+        self.can_fd_enabled = False
 
-        self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self._update_window_title()
         self.setGeometry(500, 200, 800, 300)
 
         self._central_widget = QWidget()
@@ -144,6 +145,7 @@ class MainWindow(QMainWindow):
         self.channel_selector.channel_signal.connect(
             self._toggle_can_interface_connection
         )
+        self.channel_selector.mode_signal.connect(self._on_can_mode_changed)
 
         ###############################################
         # Handle Log data from 'can_message_editor'
@@ -194,16 +196,22 @@ class MainWindow(QMainWindow):
     def log(self, text: str, color: Optional[str] = None) -> None:
         self.log_signal.emit(text, color)
 
-    @Slot(str, str)
-    def _toggle_can_interface_connection(self, channel: str, can_type: str) -> None:
+    @Slot(str, str, bool)
+    def _toggle_can_interface_connection(
+        self, channel: str, can_type: str, can_fd: bool
+    ) -> None:
         # check CAN-BUS-Interface connection status
         if not self.can_handler.get_connect_status():
             self.can_type = can_type
-            self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+            self.can_fd_enabled = can_fd
+            self.can_message_editor.set_can_fd_mode(self.can_fd_enabled)
+            self._update_window_title()
             # Get Baudrate from 'baudrate_selector'
             bps: int = self.baudrate_selector.get_baudrate()
             # Make a connection
-            rslt = self.can_handler.connect_device(channel, bps, can_type)
+            rslt = self.can_handler.connect_device(
+                channel, bps, can_type, self.can_fd_enabled
+            )
 
             if is_successful(rslt):
                 # set statuses
@@ -241,14 +249,26 @@ class MainWindow(QMainWindow):
     @Slot()
     def _change_radix_to_dec(self) -> None:
         self.radix_type = "dec"
-        self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self._update_window_title()
         self.radix_status_signal.emit(self.radix_type)
 
     @Slot()
     def _change_radix_to_hex(self) -> None:
         self.radix_type = "hex"
-        self.setWindowTitle(f"CANViewer | {self.can_type} | {self.radix_type}")
+        self._update_window_title()
         self.radix_status_signal.emit(self.radix_type)
+
+    @Slot(bool)
+    def _on_can_mode_changed(self, can_fd: bool) -> None:
+        self.can_fd_enabled = can_fd
+        self.can_message_editor.set_can_fd_mode(self.can_fd_enabled)
+        self._update_window_title()
+
+    def _update_window_title(self) -> None:
+        can_mode = "CAN-FD" if self.can_fd_enabled else "CAN"
+        self.setWindowTitle(
+            f"CANViewer | {self.can_type} | {can_mode} | {self.radix_type}"
+        )
 
 
 def main():
