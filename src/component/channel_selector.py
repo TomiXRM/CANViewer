@@ -36,22 +36,7 @@ SLCAN_INCLUDED_KEYWORDS = (
 
 
 def _get_gs_usb_device_label(index: int, device: Any) -> str:
-    def read_usb_attribute(target: Any, attribute: str) -> Any:
-        if target is None:
-            return None
-        try:
-            return getattr(target, attribute, None)
-        except Exception:
-            return None
-
-    usb_device = getattr(device, "usb_device", None) or getattr(device, "gs_usb", None)
-    manufacturer = read_usb_attribute(usb_device, "manufacturer")
-    product = read_usb_attribute(usb_device, "product")
-    serial_number = read_usb_attribute(device, "serial_number")
-    description = " ".join(
-        str(value) for value in [manufacturer, product, serial_number] if value
-    )
-    return f"{index}: {description}" if description else str(index)
+    return str(index)
 
 
 def _is_slcan_candidate(port_info: Any) -> bool:
