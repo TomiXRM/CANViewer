@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.component.baudrate_selector import BaudrateSelector
+from src.component.bitrate_selector import BitrateSelector
 from src.component.can_message_editor import CanMessageEditor
 from src.component.channel_selector import ChannelSelector
 from src.component.communication_controller import CommunicationController
@@ -46,9 +46,9 @@ class MainWindow(QMainWindow):
         self.can_handler = CANHandler()
         self.channel_selector = ChannelSelector(preferred_interface=self.can_type)
         self.can_message_editor = CanMessageEditor()
-        self.baudrate_selector = BaudrateSelector()
-        self.data_baudrate_selector = BaudrateSelector(
-            default_bps="2M",
+        self.bitrate_selector = BitrateSelector()
+        self.data_bitrate_selector = BitrateSelector(
+            default_bitrate="2M",
             label="Data Bitrate:",
             bitrate_options=["2M", "5M"],
             allow_custom=False,
@@ -70,11 +70,11 @@ class MainWindow(QMainWindow):
 
         # Bottom Layout
         self._layout_bottom = QHBoxLayout()
-        self._layout_bottom.addWidget(self.baudrate_selector)
-        self._layout_bottom.addWidget(self.data_baudrate_selector)
+        self._layout_bottom.addWidget(self.bitrate_selector)
+        self._layout_bottom.addWidget(self.data_bitrate_selector)
         self._layout_bottom.addWidget(self.communication_controller)
         self._layout_main.addLayout(self._layout_bottom)
-        self.data_baudrate_selector.setVisible(False)
+        self.data_bitrate_selector.setVisible(False)
 
         # Hide Message Filter Default
         self.message_filter.setVisible(False)
@@ -167,19 +167,23 @@ class MainWindow(QMainWindow):
 
         # load settings
         self.settings = QSettings("CANViewer", "CANViewer")
-        saved_bps = self.settings.value("bps", "1M")
-        if not isinstance(saved_bps, str):
-            saved_bps = "1M"
-        self.baudrate_selector.set_baudrate_text(saved_bps)
-        saved_data_bps = self.settings.value("data_bps", "2M")
-        if not isinstance(saved_data_bps, str):
-            saved_data_bps = "2M"
-        self.data_baudrate_selector.set_baudrate_text(saved_data_bps)
+        saved_bitrate = self.settings.value(
+            "bitrate", self.settings.value("bps", "1M")
+        )
+        if not isinstance(saved_bitrate, str):
+            saved_bitrate = "1M"
+        self.bitrate_selector.set_bitrate_text(saved_bitrate)
+        saved_data_bitrate = self.settings.value(
+            "data_bitrate", self.settings.value("data_bps", "2M")
+        )
+        if not isinstance(saved_data_bitrate, str):
+            saved_data_bitrate = "2M"
+        self.data_bitrate_selector.set_bitrate_text(saved_data_bitrate)
 
     def closeEvent(self, event) -> None:
-        self.settings.setValue("bps", self.baudrate_selector.get_baudrate_text())
+        self.settings.setValue("bitrate", self.bitrate_selector.get_bitrate_text())
         self.settings.setValue(
-            "data_bps", self.data_baudrate_selector.get_baudrate_text()
+            "data_bitrate", self.data_bitrate_selector.get_bitrate_text()
         )
         event.accept()
 
@@ -221,25 +225,27 @@ class MainWindow(QMainWindow):
             self.can_fd_enabled = can_fd
             self.can_message_editor.set_can_fd_mode(self.can_fd_enabled)
             self._update_window_title()
-            # Get Baudrate from 'baudrate_selector'
-            bps: int = self.baudrate_selector.get_baudrate()
-            data_bps: int | None = None
+            # Get bitrate from 'bitrate_selector'
+            bitrate: int = self.bitrate_selector.get_bitrate()
+            data_bitrate: int | None = None
             if self.can_fd_enabled:
-                data_bps = self.data_baudrate_selector.get_baudrate()
+                data_bitrate = self.data_bitrate_selector.get_bitrate()
             # Make a connection
             rslt = self.can_handler.connect_device(
-                channel, bps, can_type, self.can_fd_enabled, data_bps
+                channel, bitrate, can_type, self.can_fd_enabled, data_bitrate
             )
 
             if is_successful(rslt):
                 # set statuses
-                self.baudrate_selector.set_disable()  # Make baudrate_selector uneditable
-                self.data_baudrate_selector.set_disable()
+                self.bitrate_selector.set_disable()  # Make bitrate_selector uneditable
+                self.data_bitrate_selector.set_disable()
                 # Notify the CAN-BUS connection is established to the 'channel_selector'
                 self.can_connection_status_signal.emit(True)
-                data_bps_text = f" / data {data_bps} bps" if data_bps else ""
+                data_bitrate_text = (
+                    f" / data {data_bitrate} bit/s" if data_bitrate else ""
+                )
                 self.log(
-                    f"Connected to {channel} : {bps} bps{data_bps_text}",
+                    f"Connected to {channel} : {bitrate} bit/s{data_bitrate_text}",
                     color="green",
                 )
             else:
@@ -248,8 +254,8 @@ class MainWindow(QMainWindow):
         else:
             self.can_handler.disconnect_devive()
             # set statuses
-            self.baudrate_selector.set_enable()  # Make baudrate_selector editable
-            self.data_baudrate_selector.set_enable()
+            self.bitrate_selector.set_enable()  # Make bitrate_selector editable
+            self.data_bitrate_selector.set_enable()
             # Notify the CAN-BUS connection is disconnected to the 'channel_selector'
             self.can_connection_status_signal.emit(False)
             self.log("Disconnected", color="green")
@@ -286,7 +292,7 @@ class MainWindow(QMainWindow):
     def _on_can_mode_changed(self, can_fd: bool) -> None:
         self.can_fd_enabled = can_fd
         self.can_message_editor.set_can_fd_mode(self.can_fd_enabled)
-        self.data_baudrate_selector.setVisible(self.can_fd_enabled)
+        self.data_bitrate_selector.setVisible(self.can_fd_enabled)
         self._update_window_title()
 
     def _update_window_title(self) -> None:

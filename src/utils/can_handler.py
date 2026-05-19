@@ -102,10 +102,10 @@ class CANHandler(QThread):
     def connect_device(
         self,
         channel: str,
-        bps: int,
+        bitrate: int,
         interface: str,
         can_fd: bool = False,
-        data_bps: int | None = None,
+        data_bitrate: int | None = None,
     ) -> Result[bool, Exception]:
         try:
             if channel == "":
@@ -117,7 +117,7 @@ class CANHandler(QThread):
                 _check_gs_usb_access(bus_channel)
 
             self.can_bus = _create_can_bus(
-                bus_channel, bps, interface, can_fd, data_bps
+                bus_channel, bitrate, interface, can_fd, data_bitrate
             )
             self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
             return Success(True)
