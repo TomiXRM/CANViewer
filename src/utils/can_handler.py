@@ -124,8 +124,7 @@ def _format_can_error_frame(msg: can.Message) -> str:
         for error_bit, label in CAN_ERROR_CLASSES
         if msg.arbitration_id & error_bit
     ]
-    error_text = ", ".join(
-        error_classes) if error_classes else "unknown CAN error"
+    error_text = ", ".join(error_classes) if error_classes else "unknown CAN error"
     details = [f"CAN error frame: {error_text}"]
 
     data = list(msg.data) if msg.data is not None else []
@@ -137,8 +136,7 @@ def _format_can_error_frame(msg: can.Message) -> str:
     if msg.arbitration_id & CAN_ERR_BUSOFF:
         details.append("controller entered bus-off state")
     if len(data) >= 8 and (msg.arbitration_id & CAN_ERR_CRTL):
-        details.append(
-            f"tx error counter={data[6]}, rx error counter={data[7]}")
+        details.append(f"tx error counter={data[6]}, rx error counter={data[7]}")
 
     return ". ".join(details)
 
@@ -166,8 +164,7 @@ class CANHandler(QThread):
             if channel == "":
                 raise ValueError("No CAN channel is selected")
             if can_fd and interface == "gs_usb":
-                raise ValueError(
-                    "CAN-FD is not supported for gs_usb channels yet")
+                raise ValueError("CAN-FD is not supported for gs_usb channels yet")
 
             bus_channel: str | int = channel
             if interface == "gs_usb":
@@ -178,8 +175,7 @@ class CANHandler(QThread):
                 bus_channel, bitrate, interface, can_fd, data_bitrate
             )
             self._reported_error_frames.clear()
-            self.can_notifier = can.Notifier(
-                self.can_bus, [self._on_can_recieve])
+            self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
             return Success(True)
         except Exception as e:
             e = _format_connection_error(e, interface)
