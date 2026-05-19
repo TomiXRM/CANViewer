@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Union
 
 import can
-from PySide6.QtCore import Signal, Slot, Qt
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QIntValidator, QMouseEvent
 from PySide6.QtWidgets import (
     QGridLayout,
@@ -54,18 +54,22 @@ class CanMessageEditor(QWidget):
         self._grid_layout.setVerticalSpacing(2)
         self._left_container.setLayout(self._grid_layout)
         self._layout.addWidget(self._left_container)
-        self._layout.setAlignment(self._left_container, Qt.AlignmentFlag.AlignTop)
+        self._layout.setAlignment(
+            self._left_container, Qt.AlignmentFlag.AlignTop)
 
         # ID (StdID/ExtID)
         self.id_button = QPushButton("StdID")
         self.id_button.setMinimumWidth(50)
         self.id_button.clicked.connect(self.toggle_stdid_extid)
-        self._grid_layout.addWidget(self.id_button, 0, 0, Qt.AlignmentFlag.AlignBottom)
+        self._grid_layout.addWidget(
+            self.id_button, 0, 0, Qt.AlignmentFlag.AlignBottom)
 
         # ID (Edit)
         self.id_edit = QLineEdit("0")
         self.id_edit.setValidator(QIntValidator())
-        self._grid_layout.addWidget(self.id_edit, 0, 1, Qt.AlignmentFlag.AlignBottom)
+        self.id_edit.setMinimumWidth(50)
+        self._grid_layout.addWidget(
+            self.id_edit, 0, 1, Qt.AlignmentFlag.AlignBottom)
 
         # Label for DataFrame
         self.dataframe_label = ClickableLabel("DataFrame")
@@ -81,7 +85,8 @@ class CanMessageEditor(QWidget):
         self._dataframe_button_layout.setSpacing(2)
 
         self.dataframe_add_button = QPushButton("Add 8")
-        self.dataframe_add_button.clicked.connect(self._on_add_dataframe_row_clicked)
+        self.dataframe_add_button.clicked.connect(
+            self._on_add_dataframe_row_clicked)
         self._dataframe_button_layout.addWidget(self.dataframe_add_button)
 
         self.dataframe_remove_button = QPushButton("Remove 8")
@@ -119,21 +124,24 @@ class CanMessageEditor(QWidget):
             for edit in self.dataframe_edits:
                 edit.setStyleSheet(self.style_edit_default)
                 edit.setValidator(Validator.dec_validator)
-                edit.setText(Validator.text_decimalize_from_hex_text(edit.text()))
+                edit.setText(
+                    Validator.text_decimalize_from_hex_text(edit.text()))
 
         elif new_radix == "hex":
             # ID Edit
             self.id_edit.setStyleSheet(self.style_edit_hex)
             self.id_edit.setValidator(Validator.hex_validator)
             self.id_edit.setText(
-                Validator.text_hexadecimalize_from_decimal_text(self.id_edit.text())
+                Validator.text_hexadecimalize_from_decimal_text(
+                    self.id_edit.text())
             )
             # DataFrame Edits
             for edit in self.dataframe_edits:
                 edit.setStyleSheet(self.style_edit_hex)
                 edit.setValidator(Validator.hex_validator)
                 edit.setText(
-                    Validator.text_hexadecimalize_from_decimal_text(edit.text())
+                    Validator.text_hexadecimalize_from_decimal_text(
+                        edit.text())
                 )
         self._update_dataframe_button_state()
 
@@ -172,7 +180,8 @@ class CanMessageEditor(QWidget):
             for data_edit in self.dataframe_edits:
                 can_data_text: str = data_edit.text()
                 if can_data_text:
-                    value = Validator.decimalize(can_data_text, self.radix_type)
+                    value = Validator.decimalize(
+                        can_data_text, self.radix_type)
                     value = max(0, min(value, 255))
                     dataframe.append(value)
                 else:
@@ -214,9 +223,11 @@ class CanMessageEditor(QWidget):
 
     def _update_dataframe_button_state(self) -> None:
         can_add = (
-            self.can_fd_enabled and len(self.dataframe_edits) < self._max_data_bytes
+            self.can_fd_enabled and len(
+                self.dataframe_edits) < self._max_data_bytes
         )
-        can_remove = self.can_fd_enabled and len(self.dataframe_edits) > self._row_size
+        can_remove = self.can_fd_enabled and len(
+            self.dataframe_edits) > self._row_size
         self.dataframe_add_button.setVisible(self.can_fd_enabled)
         self.dataframe_add_button.setEnabled(can_add)
         self.dataframe_remove_button.setVisible(can_remove)
@@ -277,5 +288,6 @@ class CanMessageEditor(QWidget):
 
     @Slot()
     def _on_remove_dataframe_row_clicked(self) -> None:
-        target_total = max(self._row_size, len(self.dataframe_edits) - self._row_size)
+        target_total = max(self._row_size, len(
+            self.dataframe_edits) - self._row_size)
         self._trim_dataframe_rows(target_total)
