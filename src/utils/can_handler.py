@@ -3,8 +3,8 @@ import logging
 import traceback
 
 import can
-import usb.core
-from gs_usb.gs_usb import GsUsb
+import usb.core  # type: ignore[import-untyped]
+from gs_usb.gs_usb import GsUsb  # type: ignore[import-untyped]
 from PySide6.QtCore import QThread, Signal, Slot
 from returns.result import Result, Success, Failure
 
@@ -26,12 +26,18 @@ def _format_connection_error(error: Exception, interface: str) -> Exception:
 def _check_gs_usb_access(index: int) -> None:
     devs = GsUsb.scan()
     if len(devs) <= index:
-        raise ValueError(f"Cannot find gs_usb device {index}. Devices found: {len(devs)}")
+        raise ValueError(
+            f"Cannot find gs_usb device {index}. Devices found: {len(devs)}"
+        )
     _ = devs[index].device_capability
 
 
 def _create_can_bus(
-    channel: str | int, bitrate: int, interface: str
+    channel: str | int,
+    bitrate: int,
+    interface: str,
+    can_fd: bool = False,
+    data_bitrate: int | None = None,
 ) -> can.BusABC:
     can_bus_logger = logging.getLogger("can.bus")
     previous_disabled = can_bus_logger.disabled
@@ -39,6 +45,39 @@ def _create_can_bus(
         can_bus_logger.disabled = True
 
     try:
+        if can_fd and interface == "gs_usb":
+            raise ValueError("CAN-FD is not supported for gs_usb channels yet")
+        if can_fd and interface == "slcan" and data_bitrate is not None:
+            timing = can.BitTimingFd.from_sample_point(
+                f_clock=80_000_000,
+                nom_bitrate=bitrate,
+                nom_sample_point=75.0,
+                data_bitrate=data_bitrate,
+                data_sample_point=75.0,
+            )
+            return can.interface.Bus(
+                channel=channel,
+                receive_own_messages=False,
+                interface=interface,
+                timing=timing,
+            )
+        if can_fd and interface == "socketcan":
+            if data_bitrate is not None:
+                return can.interface.Bus(
+                    channel=channel,
+                    bitrate=bitrate,
+                    receive_own_messages=False,
+                    interface=interface,
+                    fd=True,
+                    data_bitrate=data_bitrate,
+                )
+            return can.interface.Bus(
+                channel=channel,
+                bitrate=bitrate,
+                receive_own_messages=False,
+                interface=interface,
+                fd=True,
+            )
         return can.interface.Bus(
             channel=channel,
             bitrate=bitrate,
@@ -65,18 +104,27 @@ class CANHandler(QThread):
         self.can_notifier: can.Notifier | None = None
 
     def connect_device(
-        self, channel: str, bps: int, interface: str
+        self,
+        channel: str,
+        bitrate: int,
+        interface: str,
+        can_fd: bool = False,
+        data_bitrate: int | None = None,
     ) -> Result[bool, Exception]:
         try:
             if channel == "":
                 raise ValueError("No CAN channel is selected")
+            if can_fd and interface == "gs_usb":
+                raise ValueError("CAN-FD is not supported for gs_usb channels yet")
 
             bus_channel: str | int = channel
             if interface == "gs_usb":
                 bus_channel = int(channel)
                 _check_gs_usb_access(bus_channel)
 
-            self.can_bus = _create_can_bus(bus_channel, bps, interface)
+            self.can_bus = _create_can_bus(
+                bus_channel, bitrate, interface, can_fd, data_bitrate
+            )
             self.can_notifier = can.Notifier(self.can_bus, [self._on_can_recieve])
             return Success(True)
         except Exception as e:
