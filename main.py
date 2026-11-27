@@ -314,7 +314,7 @@ def main():
         "--can",
         type=str,
         default="slcan",
-        help="Preferred CAN interface (slcan, gs_usb, socketcan)",
+        help="Preferred CAN interface (slcan, gs_usb, socketcan, cansub)",
     )
     args = parser.parse_args()
 

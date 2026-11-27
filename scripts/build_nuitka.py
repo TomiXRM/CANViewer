@@ -58,6 +58,8 @@ def nuitka_base_command(output_dir: Path) -> list[str]:
         "--include-module=can.interfaces.slcan",
         "--include-module=can.interfaces.gs_usb",
         "--include-module=can.interfaces.socketcan",
+        "--include-module=python_can_cansub.cansub",
+        "--include-distribution-metadata=python-can-cansub",
         "--include-package=gs_usb",
         "--include-package=usb",
         "--assume-yes-for-downloads",
