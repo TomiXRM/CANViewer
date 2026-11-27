@@ -92,6 +92,12 @@ Pythonベースで書かれているためMac,Ubuntu,Windows動作します。
    uv run python main.py -c gs_usb
    ```
 
+6. CSS Electronics CANsub（USBまたはEthernet）で動作させる場合のオプション
+
+   ``` bash
+   uv run python main.py -c cansub
+   ```
+
 ## アプリケーションバンドルのビルド
 
 macOSでは `dist/CANViewer.app` が生成されます。

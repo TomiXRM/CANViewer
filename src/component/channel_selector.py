@@ -108,6 +108,25 @@ def _discover_socketcan_channels() -> list[CanChannel]:
     return channels
 
 
+def _discover_cansub_channels() -> list[CanChannel]:
+    """CSS Electronics CANsub devices on USB or Ethernet, found via mDNS by python-can-cansub."""
+    try:
+        import can
+
+        configs = can.detect_available_configs(interfaces=["cansub"])
+    except Exception as error:
+        print(f"cansub scan failed: {error}")
+        return []
+    return [
+        CanChannel(
+            interface="cansub",
+            channel=str(config["channel"]),
+            label=f"CANsub - {config['channel']}",
+        )
+        for config in configs
+    ]
+
+
 class ChannelSelector(QWidget):
     channel_signal = Signal(str, str, bool)
     mode_signal = Signal(bool)
@@ -179,6 +198,7 @@ class ChannelSelector(QWidget):
             *_discover_slcan_channels(),
             *_discover_gs_usb_channels(),
             *_discover_socketcan_channels(),
+            *_discover_cansub_channels(),
         ]
         preferred_index = -1
         for index, channel in enumerate(channels):

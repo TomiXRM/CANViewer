@@ -96,6 +96,12 @@ For maintenance commands, dependency updates, CI, and release builds, see [Devel
    uv run python main.py -c gs_usb
    ```
 
+6. Options for operating with a CSS Electronics CANsub (USB or Ethernet)
+
+   ``` bash
+   uv run python main.py -c cansub
+   ```
+
 ## Build the application bundle
 
 On macOS, this creates `dist/CANViewer.app`.

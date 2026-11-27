@@ -85,7 +85,7 @@ def _create_can_bus(
                 interface=interface,
                 timing=timing,
             )
-        if can_fd and interface == "socketcan":
+        if can_fd and interface in ("socketcan", "cansub"):
             if data_bitrate is not None:
                 return can.interface.Bus(
                     channel=channel,
